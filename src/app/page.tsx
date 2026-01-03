@@ -40,22 +40,35 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col bg-slate-900 text-slate-100">
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 p-2 md:p-4 flex justify-between items-center sticky top-0 z-50">
-        <div className="flex items-center gap-1.5 md:gap-2">
-          <div className="p-1.5 md:p-2 rounded-lg transition-colors" style={{ backgroundColor: activeFaction?.color || '#ef4444' }}>
+      <header className="glass-strong border-b border-slate-700/50 px-2 md:px-4 py-2 md:py-3 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div
+            className="p-2 md:p-2.5 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 active:scale-95"
+            style={{
+              backgroundColor: activeFaction?.color || '#ef4444',
+              boxShadow: `0 4px 14px 0 ${(activeFaction?.color || '#ef4444')}40`
+            }}
+          >
             <Shield className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-lg md:text-xl font-bold tracking-tight leading-none">БРОНЕПЕХОТА</h1>
-            <span className="text-[10px] font-black uppercase opacity-40 tracking-widest">{activeFaction?.name}</span>
+            <h1 className="text-lg md:text-xl font-bold tracking-tight leading-none bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">БРОНЕПЕХОТА</h1>
+            <span
+              className="text-[10px] font-black uppercase tracking-widest transition-colors duration-300"
+              style={{ color: activeFaction?.color || '#ef4444' }}
+            >
+              {activeFaction?.name}
+            </span>
           </div>
         </div>
-        
-        <nav className="flex gap-1 md:gap-2">
+
+        <nav className="flex gap-1.5 md:gap-2">
           <button
             onClick={() => setView('builder')}
-            className={`flex items-center gap-1 md:gap-2 px-2 md:px-4 py-2 rounded-md transition-colors min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 ${
-              view === 'builder' ? 'bg-blue-600 text-white' : 'bg-slate-700 hover:bg-slate-600'
+            className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all duration-200 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 font-medium ${
+              view === 'builder'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 scale-105'
+                : 'bg-slate-700/50 hover:bg-slate-600 text-slate-300 hover:text-white'
             }`}
             title="Штаб"
           >
@@ -64,8 +77,10 @@ export default function Home() {
           </button>
           <button
             onClick={() => setView('game')}
-            className={`flex items-center gap-1 md:gap-2 px-2 md:px-4 py-2 rounded-md transition-colors min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 ${
-              view === 'game' ? 'bg-green-600 text-white' : 'bg-slate-700 hover:bg-slate-600'
+            className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all duration-200 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 font-medium ${
+              view === 'game'
+                ? 'bg-green-600 text-white shadow-lg shadow-green-900/50 scale-105'
+                : 'bg-slate-700/50 hover:bg-slate-600 text-slate-300 hover:text-white'
             }`}
             disabled={army.units.length === 0}
             title="В Бой!"
@@ -75,7 +90,7 @@ export default function Home() {
           </button>
           <button
             onClick={() => router.push('/editor')}
-            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-md transition-colors bg-slate-700 hover:bg-slate-600"
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 bg-slate-700/50 hover:bg-slate-600 text-slate-300 hover:text-white font-medium"
           >
             <Edit className="w-4 h-4" />
             <span>Редактор</span>
@@ -92,23 +107,31 @@ export default function Home() {
         )}
       </div>
 
-      {/* Footer / Stats Bar */}
-      <footer className="bg-slate-800 border-t border-slate-700 p-2 text-xs md:text-sm flex flex-col md:flex-row justify-around gap-2 md:gap-0">
-        <div className="flex items-center justify-center gap-1 md:gap-2">
-          <span className="hidden md:inline opacity-50">Армия:</span>
-          <span className="font-semibold truncate">{army.name}</span>
-        </div>
-        <div className="flex items-center justify-center gap-1 md:gap-2">
-          <span className="hidden md:inline opacity-50">Стоимость:</span>
-          <span className={`font-semibold ${army.totalCost > 1000 ? 'text-orange-400' : 'text-green-400'}`}>
-            {army.totalCost}
-          </span>
-        </div>
-        <div className="flex items-center justify-center gap-1 md:gap-2">
-          <span className="hidden md:inline opacity-50">Юнитов:</span>
-          <span className="font-semibold">{army.units.length}</span>
-        </div>
-      </footer>
+      {/* Footer / Stats Bar - only show in builder mode */}
+      {view === 'builder' && (
+        <footer className="glass-strong border-t border-slate-700/50 px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm flex flex-col md:flex-row justify-around gap-2 md:gap-0 shadow-lg">
+          <div className="flex items-center justify-center gap-2 md:gap-3 px-2 md:px-4 py-1 rounded-lg hover:bg-slate-800/30 transition-colors">
+            <span className="hidden md:inline opacity-50 text-[10px] uppercase tracking-wider">Армия:</span>
+            <span className="font-semibold truncate text-sm md:text-base">{army.name}</span>
+          </div>
+          <div className="flex items-center justify-center gap-2 md:gap-3 px-2 md:px-4 py-1 rounded-lg hover:bg-slate-800/30 transition-colors">
+            <span className="hidden md:inline opacity-50 text-[10px] uppercase tracking-wider">Стоимость:</span>
+            <span className={`font-bold text-base md:text-lg px-2 py-0.5 rounded-md ${
+              army.totalCost > 1000
+                ? 'text-orange-400 bg-orange-950/30 border border-orange-900/30'
+                : 'text-green-400 bg-green-950/30 border border-green-900/30'
+            }`}>
+              {army.totalCost}
+            </span>
+          </div>
+          <div className="flex items-center justify-center gap-2 md:gap-3 px-2 md:px-4 py-1 rounded-lg hover:bg-slate-800/30 transition-colors">
+            <span className="hidden md:inline opacity-50 text-[10px] uppercase tracking-wider">Юнитов:</span>
+            <span className="font-bold text-base md:text-lg px-2 py-0.5 rounded-md bg-blue-950/30 border border-blue-900/30 text-blue-400">
+              {army.units.length}
+            </span>
+          </div>
+        </footer>
+      )}
     </main>
   );
 }

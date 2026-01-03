@@ -8,7 +8,7 @@
     "fire_rate": 2,
     "ammo_max": 20,
     "durability_max": 16,
-    "image": "/images/techsheet-1.png",
+    "image": "",
     "originalUrl": "https://vk.com/photo-233498256_457239120",
     "speed_sectors": [
       {
@@ -70,7 +70,7 @@
     "fire_rate": 2,
     "ammo_max": 16,
     "durability_max": 12,
-    "image": "/images/techsheet-1.png",
+    "image": "",
     "speed_sectors": [
       {
         "min_durability": 10,
@@ -106,7 +106,7 @@
     "fire_rate": 2,
     "ammo_max": 16,
     "durability_max": 12,
-    "image": "/images/techsheet-1.png",
+    "image": "",
     "speed_sectors": [
       {
         "min_durability": 10,
@@ -146,7 +146,7 @@
     "fire_rate": 2,
     "ammo_max": 14,
     "durability_max": 11,
-    "image": "/images/techsheet-1.png",
+    "image": "",
     "speed_sectors": [
       {
         "min_durability": 6,
@@ -197,7 +197,7 @@
     "fire_rate": 2,
     "ammo_max": 16,
     "durability_max": 14,
-    "image": "/images/techsheet-1.png",
+    "image": "",
     "speed_sectors": [
       {
         "min_durability": 9,
@@ -232,7 +232,7 @@
     "fire_rate": 2,
     "ammo_max": 20,
     "durability_max": 15,
-    "image": "/images/techsheet-1.png",
+    "image": "",
     "speed_sectors": [
       {
         "min_durability": 10,
@@ -292,7 +292,7 @@
     "fire_rate": 1,
     "ammo_max": 12,
     "durability_max": 10,
-    "image": "/images/techsheet-1.png",
+    "image": "",
     "speed_sectors": [
       {
         "min_durability": 7,

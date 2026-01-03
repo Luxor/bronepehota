@@ -20,11 +20,11 @@ interface GameSessionProps {
 }
 
 export default function GameSession({ army, setArmy }: GameSessionProps) {
-  const [activeTab, setActiveTab] = useState<'units' | 'combat'>('units');
   const [showInitiative, setShowInitiative] = useState(false);
   const [initRoll, setInitRoll] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
-  
+  const [showCombat, setShowCombat] = useState(false);
+
   // New state for focused view
   const [viewMode, setViewMode] = useState<'grid' | 'focused'>('focused');
   const [focusedUnitIdx, setFocusedUnitIdx] = useState(0);
@@ -103,193 +103,234 @@ export default function GameSession({ army, setArmy }: GameSessionProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 relative overflow-hidden">
+    <div className="flex flex-col h-full bg-gradient-to-b from-slate-950 to-slate-900 relative overflow-hidden">
       {/* Initiative Modal */}
       {showInitiative && (
-        <div className="absolute inset-0 z-[100] bg-slate-950/90 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-slate-800 border-2 border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-6">
-            <h3 className="text-2xl font-black uppercase tracking-tighter text-blue-400">Бросок Инициативы</h3>
+        <div className="absolute inset-0 z-[100] bg-slate-950/95 flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="glass-strong border-2 border-blue-500/20 rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl text-center space-y-6 animate-in zoom-in duration-300">
+            <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-blue-400">Бросок Инициативы</h3>
             <div className="flex justify-center">
               <div className={cn(
-                "w-24 h-24 bg-slate-900 rounded-2xl border-2 border-blue-500/50 flex items-center justify-center text-5xl font-black shadow-lg transition-all",
-                isRolling ? "scale-110 rotate-12" : "scale-100 rotate-0"
+                "w-28 h-28 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl border-4 border-blue-500/50 flex items-center justify-center text-6xl font-black shadow-2xl transition-all",
+                isRolling ? "scale-110 rotate-12 shadow-blue-500/30" : "scale-100 rotate-0"
               )}>
                 {initRoll}
               </div>
             </div>
-            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="opacity-50 uppercase font-bold">Боеспособных отрядов:</span>
-                <span className="text-blue-400 font-black">{activeUnitsCount}</span>
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 space-y-2">
+              <div className="flex justify-between items-center text-xs md:text-sm">
+                <span className="opacity-50 uppercase font-bold tracking-wider">Боеспособных отрядов:</span>
+                <span className="text-blue-400 font-black text-lg">{activeUnitsCount}</span>
               </div>
             </div>
-            <button onClick={startNewTurn} disabled={isRolling} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-4 rounded-xl font-bold text-lg shadow-lg">
+            <button onClick={startNewTurn} disabled={isRolling} className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-900/50 transition-all active:scale-95">
               НАЧАТЬ ТУР
             </button>
           </div>
         </div>
       )}
 
-      {/* Navigation Tabs */}
-      <div className="flex bg-slate-900 border-b border-slate-800 p-1 shrink-0">
-        <button
-          onClick={() => setActiveTab('units')}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-3 text-xs font-black uppercase tracking-widest rounded-lg transition-all min-h-[44px]",
-            activeTab === 'units' ? "bg-slate-800 text-blue-400 shadow-inner" : "text-slate-500"
-          )}
-        >
-          <Users className="w-5 h-5 md:w-4 md:h-4" />
-          <span className="hidden sm:inline">Войска</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('combat')}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-3 text-xs font-black uppercase tracking-widest rounded-lg transition-all min-h-[44px]",
-            activeTab === 'combat' ? "bg-slate-800 text-orange-400 shadow-inner" : "text-slate-500"
-          )}
-        >
-          <Target className="w-5 h-5 md:w-4 md:h-4" />
-          <span className="hidden sm:inline">Атака</span>
-        </button>
+      {/* Unified Top Bar with Controls and Unit Navigation */}
+      <div className="bg-slate-900/90 border-b border-slate-800/50 shrink-0">
+        {/* Top Row: View toggle, New Turn, Combat toggle */}
+        <div className="flex items-center justify-between px-2 md:px-3 py-2 gap-2 border-b border-slate-800/30">
+          {/* View Mode Toggle */}
+          <div className="flex gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/50">
+            <button
+              onClick={() => setViewMode('focused')}
+              className={cn("p-2 rounded-lg transition-all flex items-center justify-center", viewMode === 'focused' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}
+              title="Фокус"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={cn("p-2 rounded-lg transition-all flex items-center justify-center", viewMode === 'grid' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}
+              title="Сетка"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* New Turn Button */}
+          <button
+            onClick={calculateInitiative}
+            className="flex items-center gap-2 text-xs font-black uppercase bg-blue-600/20 text-blue-400 border border-blue-500/40 px-3 py-2 rounded-lg transition-all hover:bg-blue-600/30 active:scale-95 shadow-lg"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Новый Тур</span>
+          </button>
+
+          {/* Combat Toggle */}
+          <button
+            onClick={() => setShowCombat(!showCombat)}
+            className={cn(
+              "flex items-center gap-2 text-xs font-black uppercase px-3 py-2 rounded-lg transition-all border",
+              showCombat
+                ? "bg-orange-600/20 text-orange-400 border-orange-500/40"
+                : "bg-slate-800/50 text-slate-500 border-slate-700/50 hover:text-slate-300"
+            )}
+          >
+            <Target className="w-4 h-4" />
+            <span className="hidden sm:inline">Атака</span>
+          </button>
+        </div>
+
+        {/* Unit Navigation Row with Arrows */}
+        <div className="flex items-center gap-2 px-2 py-2 min-h-[52px]">
+          {/* Prev Button */}
+          <button
+            onClick={prevUnit}
+            className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg text-slate-300 active:scale-90 transition-all min-w-[36px] h-9 flex items-center justify-center border border-slate-700/50 shrink-0"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* Unit Cards Scrollable */}
+          <div className="flex-1 overflow-x-auto flex gap-1.5 min-w-0 overflow-y-hidden">
+            {army.units.map((unit, idx) => {
+              const { isDead, isDone } = getUnitStatus(unit);
+              const isActive = focusedUnitIdx === idx && viewMode === 'focused' && !showCombat;
+
+              // Calculate health percentage for visual bar
+              let healthPercent = 100;
+              if (unit.type === 'squad') {
+                const total = (unit.data as Squad).soldiers.length;
+                const dead = unit.deadSoldiers?.length || 0;
+                healthPercent = ((total - dead) / total) * 100;
+              } else {
+                const max = unit.data.durability_max;
+                const current = unit.currentDurability || 0;
+                healthPercent = (current / max) * 100;
+              }
+
+              return (
+                <button
+                  key={unit.instanceId}
+                  onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); setShowCombat(false); }}
+                  className={cn(
+                    "shrink-0 w-14 h-9 rounded-lg border flex flex-row items-center justify-center gap-1 transition-all relative overflow-hidden min-w-[44px]",
+                    isActive
+                      ? "border-blue-500 bg-blue-900/30 scale-105 shadow-lg shadow-blue-900/30"
+                      : "border-slate-700/50 bg-slate-800/50 opacity-70 hover:opacity-100",
+                    isDead ? "border-red-900/50 bg-red-950/20" : "",
+                    isDone && !isDead ? "border-green-900/50 bg-green-950/30" : ""
+                  )}
+                >
+                  {/* Unit Number */}
+                  <div className="text-sm md:text-base font-black relative z-10">{idx + 1}</div>
+
+                  {/* Unit Type Icon */}
+                  {unit.type === 'squad' ? (
+                    <Users className="w-3 h-3 relative z-10" />
+                  ) : (
+                    <Dices className="w-3 h-3 relative z-10" />
+                  )}
+
+                  {/* Status dot */}
+                  <div className={cn(
+                    "absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full",
+                    isDead ? "bg-red-500" : isDone ? "bg-green-500" : "bg-blue-500"
+                  )} />
+
+                  {/* Health bar */}
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/50">
+                    <div
+                      className="h-full transition-all duration-300"
+                      style={{
+                        width: `${healthPercent}%`,
+                        backgroundColor: isDead ? '#ef4444' : isDone ? '#22c55e' : '#3b82f6'
+                      }}
+                    />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Next Button */}
+          <button
+            onClick={nextUnit}
+            className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg text-slate-300 active:scale-90 transition-all min-w-[36px] h-9 flex items-center justify-center border border-slate-700/50 shrink-0"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
+      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-0">
-        {activeTab === 'units' ? (
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Toolbar */}
-            <div className="px-2 md:px-4 py-2 flex justify-between items-center bg-slate-900/50 border-b border-slate-800 shrink-0">
-              <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
-                <button 
-                  onClick={() => setViewMode('focused')}
-                  className={cn("p-2 md:p-1.5 rounded-md transition-all min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center", viewMode === 'focused' ? "bg-blue-600 text-white shadow-md" : "text-slate-400")}
-                  title="Фокус"
-                >
-                  <Maximize2 className="w-5 h-5 md:w-4 md:h-4" />
-                </button>
-                <button 
-                  onClick={() => setViewMode('grid')}
-                  className={cn("p-2 md:p-1.5 rounded-md transition-all min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center", viewMode === 'grid' ? "bg-blue-600 text-white shadow-md" : "text-slate-400")}
-                  title="Сетка"
-                >
-                  <LayoutGrid className="w-5 h-5 md:w-4 md:h-4" />
-                </button>
-              </div>
-              <button
-                onClick={calculateInitiative}
-                className="flex items-center gap-1 md:gap-2 text-[9px] md:text-[10px] font-black uppercase bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2 md:px-3 py-2 md:py-1.5 rounded-full transition-all active:scale-95 min-h-[44px] md:min-h-0"
-              >
-                <RotateCcw className="w-4 h-4 md:w-3 md:h-3" />
-                <span className="hidden sm:inline">Новый Тур</span>
-                <span className="sm:hidden">Тур</span>
-              </button>
-            </div>
-
-            {/* Quick Summary Navigation (Mobile) */}
-            <div className="bg-slate-900/80 border-b border-slate-800 overflow-x-auto custom-scrollbar flex p-1.5 md:p-2 gap-1.5 md:gap-2 shrink-0">
-              {army.units.map((unit, idx) => {
-                const { isDead, isDone } = getUnitStatus(unit);
-                const isActive = focusedUnitIdx === idx && viewMode === 'focused';
-                
-                return (
-                  <button
-                    key={unit.instanceId}
-                    onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); }}
-                    className={cn(
-                      "shrink-0 w-11 h-11 md:w-12 md:h-12 rounded-xl border-2 flex flex-col items-center justify-center transition-all relative overflow-hidden min-w-[44px] min-h-[44px]",
-                      isActive ? "border-blue-500 bg-blue-900/20 scale-105" : "border-slate-700 bg-slate-800 opacity-60",
-                      isDead ? "border-red-900/50 bg-red-950/20 opacity-30" : "",
-                      isDone && !isDead ? "border-green-900/50 bg-green-950/20" : ""
-                    )}
-                  >
-                    {/* Tiny visual representation */}
-                    <div className="text-[9px] md:text-[10px] font-black">{idx + 1}</div>
-                    <div className="flex gap-0.5 mt-0.5">
-                      {unit.type === 'squad' ? (
-                        <Users className="w-2.5 h-2.5 md:w-2 md:h-2" />
-                      ) : (
-                        <Dices className="w-2.5 h-2.5 md:w-2 md:h-2" />
-                      )}
-                    </div>
-                    {/* Status Overlays */}
-                    {isDone && !isDead && <CheckCircle2 className="w-3 h-3 text-green-500 absolute -top-0.5 -right-0.5 bg-slate-900 rounded-full" />}
-                    {isDead && <UserX className="w-3 h-3 text-red-500 absolute -top-0.5 -right-0.5 bg-slate-900 rounded-full" />}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Units Content */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-              {viewMode === 'focused' ? (
-                /* Focused Carousel View */
-                <div className="flex-1 flex flex-col p-4 gap-4 min-h-0">
-                  <div className="flex-1 flex items-center justify-center min-h-0">
-                    <div className={cn(
-                      "w-full h-full overflow-y-auto custom-scrollbar rounded-xl border border-slate-800 bg-slate-900/30 shadow-2xl",
-                      army.units[focusedUnitIdx]?.type === 'machine' ? "max-w-4xl" : "max-w-lg"
-                    )}>
-                      {army.units.length > 0 && (
-                        <UnitCard 
-                          unit={army.units[focusedUnitIdx]} 
-                          updateUnit={updateUnit} 
-                        />
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Carousel Controls */}
-                  <div className="flex items-center justify-between gap-2 md:gap-4 shrink-0 bg-slate-900 p-2 rounded-2xl border border-slate-800 shadow-xl">
-                    <button 
-                      onClick={prevUnit}
-                      className="p-3 md:p-4 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 active:scale-90 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <div className="text-center flex-1 min-w-0">
-                      <div className="text-[9px] md:text-[10px] font-black uppercase opacity-40 tracking-widest mb-1 truncate px-2">
-                        {army.units[focusedUnitIdx]?.data.name}
-                      </div>
-                      <div className="text-xs md:text-sm font-black text-blue-400">{focusedUnitIdx + 1} / {army.units.length}</div>
-                    </div>
-                    <button 
-                      onClick={nextUnit}
-                      className="p-3 md:p-4 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 active:scale-90 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    >
-                      <ChevronRight className="w-6 h-6" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* Classic Grid View */
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {army.units.map((unit, idx) => (
-                      <div 
-                        key={unit.instanceId} 
-                        onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); }}
-                        className={cn(
-                          "cursor-pointer transition-transform active:scale-[0.98]",
-                          unit.type === 'machine' ? "md:col-span-2 lg:col-span-2" : ""
-                        )}
-                      >
-                        <UnitCard 
-                          unit={unit} 
-                          updateUnit={updateUnit} 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* Combat Assistant Tab */
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        {showCombat ? (
+          /* Combat Assistant */
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
             <CombatAssistant />
           </div>
+        ) : (
+          /* Units View */
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {viewMode === 'focused' ? (
+              /* Focused Carousel View */
+              <div className="flex-1 flex items-center justify-center p-4 md:p-6 min-h-0">
+                <div className={cn(
+                  "w-full h-full overflow-y-auto custom-scrollbar rounded-2xl border border-slate-800/50 bg-slate-900/30 shadow-2xl p-2",
+                  army.units[focusedUnitIdx]?.type === 'machine' ? "max-w-6xl" : "max-w-2xl"
+                )}>
+                  {army.units.length > 0 && (
+                    <UnitCard
+                      unit={army.units[focusedUnitIdx]}
+                      updateUnit={updateUnit}
+                    />
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Grid View */
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {army.units.map((unit, idx) => (
+                    <div
+                      key={unit.instanceId}
+                      onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); }}
+                      className={cn(
+                        "cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]",
+                        unit.type === 'machine' ? "md:col-span-2 lg:col-span-2 xl:col-span-2" : ""
+                      )}
+                    >
+                      <UnitCard
+                        unit={unit}
+                        updateUnit={updateUnit}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
+      </div>
+
+      {/* Status Bar */}
+      <div className="bg-slate-900/90 border-t border-slate-800/50 shrink-0">
+        <div className="flex items-center justify-between px-3 py-2 text-[10px] md:text-xs uppercase font-bold tracking-wider">
+          <div className="flex items-center gap-3 md:gap-4">
+            <span className="text-green-400 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3 h-3" />
+              {army.units.filter(u => {
+                const { isDead, isDone } = getUnitStatus(u);
+                return isDone && !isDead;
+              }).length} Готов
+            </span>
+            <span className="text-blue-400 flex items-center gap-1.5">
+              <Heart className="w-3 h-3" />
+              {army.units.filter(u => !getUnitStatus(u).isDead && !getUnitStatus(u).isDone).length} Активен
+            </span>
+            <span className="text-red-400 flex items-center gap-1.5">
+              <UserX className="w-3 h-3" />
+              {army.units.filter(u => getUnitStatus(u).isDead).length} Потерян
+            </span>
+          </div>
+          <span className="text-slate-500">{army.units.length} Всего</span>
+        </div>
       </div>
     </div>
   );

@@ -205,25 +205,25 @@ export default function ArmlistEditor({
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
       {/* Mode selector */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 md:gap-3">
         <button
           onClick={() => setEditorMode('squad')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl font-medium transition-all duration-200 min-h-[44px] md:min-h-0 ${
             editorMode === 'squad'
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 scale-105'
+              : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700 border border-slate-700/50'
           }`}
         >
           Взвод солдат
         </button>
         <button
           onClick={() => setEditorMode('machine')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl font-medium transition-all duration-200 min-h-[44px] md:min-h-0 ${
             editorMode === 'machine'
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 scale-105'
+              : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700 border border-slate-700/50'
           }`}
         >
           Техника
@@ -232,12 +232,12 @@ export default function ArmlistEditor({
 
       {/* Messages */}
       {error && (
-        <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
+        <div className="bg-red-900/40 border border-red-700/50 text-red-200 px-4 py-3 rounded-xl animate-in slide-in-from-top-2 duration-200">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-green-900/50 border border-green-700 text-green-200 px-4 py-3 rounded-lg">
+        <div className="bg-green-900/40 border border-green-700/50 text-green-200 px-4 py-3 rounded-xl animate-in slide-in-from-top-2 duration-200">
           Успешно сохранено!
         </div>
       )}
@@ -326,53 +326,55 @@ function SquadEditor({ data, setData, onImagePaste, onImageUpload, onSave, savin
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Редактор взвода</h2>
+      <h2 className="text-2xl md:text-3xl font-bold">Редактор взвода</h2>
 
       {/* Basic info */}
-      <div className="bg-slate-800 p-4 rounded-lg space-y-4">
+      <div className="glass-strong p-5 md:p-6 rounded-2xl border border-slate-700/50 space-y-5 shadow-xl">
         <h3 className="text-lg font-semibold">Основная информация</h3>
-        
-        <div>
-          <label className="block text-sm font-medium mb-1">Фракция *</label>
-          <select
-            value={data.faction || 'polaris'}
-            onChange={(e) => setData({ ...data, faction: e.target.value as FactionID })}
-            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2"
-          >
-            {factionsData.map(f => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
-          </select>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Фракция *</label>
+            <select
+              value={data.faction || 'polaris'}
+              onChange={(e) => setData({ ...data, faction: e.target.value as FactionID })}
+              className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            >
+              {factionsData.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Стоимость *</label>
+            <input
+              type="number"
+              value={data.cost || 0}
+              onChange={(e) => setData({ ...data, cost: parseInt(e.target.value) || 0 })}
+              className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            />
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Название *</label>
+          <label className="block text-sm font-medium mb-2">Название *</label>
           <input
             type="text"
             value={data.name || ''}
             onChange={(e) => setData({ ...data, name: e.target.value })}
-            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2"
+            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
             placeholder="Например: Легкая штурмовая клон-пехота"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Стоимость *</label>
-          <input
-            type="number"
-            value={data.cost || 0}
-            onChange={(e) => setData({ ...data, cost: parseInt(e.target.value) || 0 })}
-            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Ссылка на армлист</label>
+          <label className="block text-sm font-medium mb-2">Ссылка на армлист</label>
           <input
             type="url"
             value={data.originalUrl || ''}
             onChange={(e) => setData({ ...data, originalUrl: e.target.value })}
-            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2"
+            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
             placeholder="https://vk.com/photo-..."
           />
         </div>
@@ -387,16 +389,16 @@ function SquadEditor({ data, setData, onImagePaste, onImageUpload, onSave, savin
       </div>
 
       {/* Soldiers */}
-      <div className="bg-slate-800 p-4 rounded-lg space-y-4">
+      <div className="glass-strong p-5 md:p-6 rounded-2xl border border-slate-700/50 space-y-4 shadow-xl">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">Солдаты</h3>
           <button
             onClick={addSoldier}
             disabled={(data.soldiers?.length || 0) >= 6}
-            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all min-h-[44px] md:min-h-0 shadow-lg shadow-blue-900/30"
           >
             <Plus className="w-4 h-4" />
-            Добавить солдата
+            <span className="hidden sm:inline">Добавить солдата</span>
           </button>
         </div>
 
@@ -415,14 +417,14 @@ function SquadEditor({ data, setData, onImagePaste, onImageUpload, onSave, savin
         ))}
 
         {(!data.soldiers || data.soldiers.length === 0) && (
-          <p className="text-slate-400 text-sm">Добавьте солдат в взвод</p>
+          <p className="text-slate-400 text-sm text-center py-6">Добавьте солдат в взвод</p>
         )}
       </div>
 
       <button
         onClick={onSave}
         disabled={saving || !data.name || !data.faction || (data.soldiers?.length || 0) === 0}
-        className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold flex items-center justify-center gap-2"
+        className="w-full py-4 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-green-900/30 transition-all active:scale-[0.98] min-h-[52px]"
       >
         <Save className="w-5 h-5" />
         {saving ? 'Сохранение...' : 'Сохранить взвод'}
@@ -456,83 +458,83 @@ function SoldierEditor({
   const [newProp, setNewProp] = useState('');
 
   return (
-    <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
-      <div className="flex justify-between items-center mb-3">
-        <h4 className="font-semibold">Солдат {index + 1}</h4>
+    <div className="bg-slate-800/60 p-4 md:p-5 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all">
+      <div className="flex justify-between items-center mb-4">
+        <h4 className="font-bold text-base md:text-lg">Солдат {index + 1}</h4>
         <button
           onClick={onRemove}
-          className="text-red-400 hover:text-red-300"
+          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded-lg transition-colors min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0"
         >
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <div>
-          <label className="block text-xs font-medium mb-1">Ранг *</label>
+          <label className="block text-xs font-medium mb-1.5">Ранг *</label>
           <input
             type="number"
             value={soldier.rank}
             onChange={(e) => onUpdate('rank', parseInt(e.target.value) || 0)}
-            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm"
+            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium mb-1">Скорость *</label>
+          <label className="block text-xs font-medium mb-1.5">Скорость *</label>
           <input
             type="number"
             value={soldier.speed}
             onChange={(e) => onUpdate('speed', parseInt(e.target.value) || 0)}
-            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm"
+            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium mb-1">Дальность *</label>
+          <label className="block text-xs font-medium mb-1.5">Дальность *</label>
           <input
             type="text"
             value={soldier.range}
             onChange={(e) => onUpdate('range', e.target.value)}
-            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm"
+            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
             placeholder="D6, D12, ББ"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium mb-1">Мощность *</label>
+          <label className="block text-xs font-medium mb-1.5">Мощность *</label>
           <input
             type="text"
             value={soldier.power}
             onChange={(e) => onUpdate('power', e.target.value)}
-            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm"
+            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
             placeholder="1D6, 2D12"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium mb-1">ББ *</label>
+          <label className="block text-xs font-medium mb-1.5">ББ *</label>
           <input
             type="number"
             value={soldier.melee}
             onChange={(e) => onUpdate('melee', parseInt(e.target.value) || 0)}
-            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm"
+            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium mb-1">Броня *</label>
+          <label className="block text-xs font-medium mb-1.5">Броня *</label>
           <input
             type="number"
             value={soldier.armor}
             onChange={(e) => onUpdate('armor', parseInt(e.target.value) || 0)}
-            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm"
+            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
           />
         </div>
       </div>
 
-      <div className="mt-3">
-        <label className="block text-xs font-medium mb-1">Изображение солдата</label>
+      <div className="mt-4">
+        <label className="block text-xs font-medium mb-2">Изображение солдата</label>
         <ImageUploadField
           value={soldier.image || ''}
           onChange={(url) => onUpdate('image', url)}
@@ -542,9 +544,9 @@ function SoldierEditor({
         />
       </div>
 
-      <div className="mt-3">
-        <label className="block text-xs font-medium mb-1">Спец свойства</label>
-        <div className="flex gap-2 mb-2">
+      <div className="mt-4">
+        <label className="block text-xs font-medium mb-2">Спец свойства</label>
+        <div className="flex gap-2 mb-3">
           <input
             type="text"
             value={newProp}
@@ -555,7 +557,7 @@ function SoldierEditor({
                 setNewProp('');
               }
             }}
-            className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm"
+            className="flex-1 bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
             placeholder="Например: Г (граната)"
           />
           <button
@@ -565,7 +567,7 @@ function SoldierEditor({
                 setNewProp('');
               }
             }}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition-all min-h-[44px] md:min-h-0"
           >
             Добавить
           </button>
@@ -574,12 +576,12 @@ function SoldierEditor({
           {(soldier.props || []).map((prop, propIdx) => (
             <span
               key={propIdx}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-600 rounded text-sm"
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-700/50 rounded-lg text-sm border border-slate-600/50"
             >
               {prop}
               <button
                 onClick={() => onRemoveProp(propIdx)}
-                className="text-red-400 hover:text-red-300"
+                className="text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded p-0.5 transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
