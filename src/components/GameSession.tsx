@@ -199,7 +199,7 @@ export default function GameSession({ army, setArmy }: GameSessionProps) {
                 const dead = unit.deadSoldiers?.length || 0;
                 healthPercent = ((total - dead) / total) * 100;
               } else {
-                const max = unit.data.durability_max;
+                const max = (unit.data as Machine).durability_max;
                 const current = unit.currentDurability || 0;
                 healthPercent = (current / max) * 100;
               }

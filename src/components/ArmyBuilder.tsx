@@ -99,8 +99,6 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
 
   return (
     <div className="p-3 md:p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 h-full max-w-7xl mx-auto">
-      {/* DEBUG */}
-      {console.log('ArmyBuilder render, army.units:', army.units.length)}
       {/* Available Units Panel */}
       <div className="flex-1 flex flex-col gap-4">
         <div className="glass-strong p-4 md:p-5 rounded-2xl shadow-xl border border-slate-700/50">
