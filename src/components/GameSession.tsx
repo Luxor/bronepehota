@@ -106,24 +106,24 @@ export default function GameSession({ army, setArmy }: GameSessionProps) {
     <div className="flex flex-col h-full bg-gradient-to-b from-slate-950 to-slate-900 relative overflow-hidden">
       {/* Initiative Modal */}
       {showInitiative && (
-        <div className="absolute inset-0 z-[100] bg-slate-950/95 flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className="glass-strong border-2 border-blue-500/20 rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl text-center space-y-6 animate-in zoom-in duration-300">
-            <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-blue-400">Бросок Инициативы</h3>
+        <div className="fixed inset-0 z-[100] bg-slate-950/95 flex items-center justify-center p-2 md:p-4 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="glass-strong border-2 border-blue-500/20 rounded-2xl md:rounded-3xl p-4 md:p-6 lg:p-8 max-w-sm w-full shadow-2xl text-center space-y-4 md:space-y-6 animate-in zoom-in duration-300 mx-auto max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tighter text-blue-400 leading-tight">Бросок Инициативы</h3>
             <div className="flex justify-center">
               <div className={cn(
-                "w-28 h-28 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl border-4 border-blue-500/50 flex items-center justify-center text-6xl font-black shadow-2xl transition-all",
+                "w-20 h-20 md:w-28 md:h-28 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl md:rounded-3xl border-4 border-blue-500/50 flex items-center justify-center text-4xl md:text-6xl font-black shadow-2xl transition-all",
                 isRolling ? "scale-110 rotate-12 shadow-blue-500/30" : "scale-100 rotate-0"
               )}>
                 {initRoll}
               </div>
             </div>
-            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 space-y-2">
+            <div className="bg-slate-900/50 p-3 md:p-4 rounded-xl border border-slate-700/50 space-y-2">
               <div className="flex justify-between items-center text-xs md:text-sm">
-                <span className="opacity-50 uppercase font-bold tracking-wider">Боеспособных отрядов:</span>
-                <span className="text-blue-400 font-black text-lg">{activeUnitsCount}</span>
+                <span className="opacity-50 uppercase font-bold tracking-wider text-left">Боеспособных:</span>
+                <span className="text-blue-400 font-black text-base md:text-lg">{activeUnitsCount}</span>
               </div>
             </div>
-            <button onClick={startNewTurn} disabled={isRolling} className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-900/50 transition-all active:scale-95">
+            <button onClick={startNewTurn} disabled={isRolling} className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 py-3 md:py-4 rounded-xl font-bold text-sm md:text-lg shadow-lg shadow-blue-900/50 transition-all active:scale-95">
               НАЧАТЬ ТУР
             </button>
           </div>
@@ -133,45 +133,45 @@ export default function GameSession({ army, setArmy }: GameSessionProps) {
       {/* Unified Top Bar with Controls and Unit Navigation */}
       <div className="bg-slate-900/90 border-b border-slate-800/50 shrink-0">
         {/* Top Row: View toggle, New Turn, Combat toggle */}
-        <div className="flex items-center justify-between px-2 md:px-3 py-2 gap-2 border-b border-slate-800/30">
+        <div className="flex items-center justify-between px-2 md:px-3 py-2 gap-1 md:gap-2 border-b border-slate-800/30">
           {/* View Mode Toggle */}
-          <div className="flex gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/50">
+          <div className="flex gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/50 shrink-0">
             <button
               onClick={() => setViewMode('focused')}
-              className={cn("p-2 rounded-lg transition-all flex items-center justify-center", viewMode === 'focused' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}
+              className={cn("p-1.5 md:p-2 rounded-lg transition-all flex items-center justify-center", viewMode === 'focused' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}
               title="Фокус"
             >
-              <Maximize2 className="w-4 h-4" />
+              <Maximize2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={cn("p-2 rounded-lg transition-all flex items-center justify-center", viewMode === 'grid' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}
+              className={cn("p-1.5 md:p-2 rounded-lg transition-all flex items-center justify-center", viewMode === 'grid' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}
               title="Сетка"
             >
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </button>
           </div>
 
           {/* New Turn Button */}
           <button
             onClick={calculateInitiative}
-            className="flex items-center gap-2 text-xs font-black uppercase bg-blue-600/20 text-blue-400 border border-blue-500/40 px-3 py-2 rounded-lg transition-all hover:bg-blue-600/30 active:scale-95 shadow-lg"
+            className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase bg-blue-600/20 text-blue-400 border border-blue-500/40 px-2 md:px-3 py-1.5 md:py-2 rounded-lg transition-all hover:bg-blue-600/30 active:scale-95 shadow-lg shrink-0"
           >
-            <RotateCcw className="w-4 h-4" />
-            <span>Новый Тур</span>
+            <RotateCcw className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden sm:inline">Новый Тур</span>
           </button>
 
           {/* Combat Toggle */}
           <button
             onClick={() => setShowCombat(!showCombat)}
             className={cn(
-              "flex items-center gap-2 text-xs font-black uppercase px-3 py-2 rounded-lg transition-all border",
+              "flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase px-2 md:px-3 py-1.5 md:py-2 rounded-lg transition-all border shrink-0",
               showCombat
                 ? "bg-orange-600/20 text-orange-400 border-orange-500/40"
                 : "bg-slate-800/50 text-slate-500 border-slate-700/50 hover:text-slate-300"
             )}
           >
-            <Target className="w-4 h-4" />
+            <Target className="w-3.5 h-3.5 md:w-4 md:h-4" />
             <span className="hidden sm:inline">Атака</span>
           </button>
         </div>
@@ -259,7 +259,7 @@ export default function GameSession({ army, setArmy }: GameSessionProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 pb-12">
         {showCombat ? (
           /* Combat Assistant */
           <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
@@ -309,27 +309,30 @@ export default function GameSession({ army, setArmy }: GameSessionProps) {
         )}
       </div>
 
-      {/* Status Bar */}
-      <div className="bg-slate-900/90 border-t border-slate-800/50 shrink-0">
+      {/* Status Bar - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800/50 shadow-xl z-40">
         <div className="flex items-center justify-between px-3 py-2 text-[10px] md:text-xs uppercase font-bold tracking-wider">
-          <div className="flex items-center gap-3 md:gap-4">
-            <span className="text-green-400 flex items-center gap-1.5">
+          <div className="flex items-center gap-2 md:gap-4">
+            <span className="text-green-400 flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" />
-              {army.units.filter(u => {
+              <span className="hidden sm:inline">Готов</span>
+              <span className="sm:hidden">{army.units.filter(u => {
                 const { isDead, isDone } = getUnitStatus(u);
                 return isDone && !isDead;
-              }).length} Готов
+              }).length}</span>
             </span>
-            <span className="text-blue-400 flex items-center gap-1.5">
+            <span className="text-blue-400 flex items-center gap-1">
               <Heart className="w-3 h-3" />
-              {army.units.filter(u => !getUnitStatus(u).isDead && !getUnitStatus(u).isDone).length} Активен
+              <span className="hidden sm:inline">Активен</span>
+              <span className="sm:hidden">{army.units.filter(u => !getUnitStatus(u).isDead && !getUnitStatus(u).isDone).length}</span>
             </span>
-            <span className="text-red-400 flex items-center gap-1.5">
+            <span className="text-red-400 flex items-center gap-1">
               <UserX className="w-3 h-3" />
-              {army.units.filter(u => getUnitStatus(u).isDead).length} Потерян
+              <span className="hidden sm:inline">Потерян</span>
+              <span className="sm:hidden">{army.units.filter(u => getUnitStatus(u).isDead).length}</span>
             </span>
           </div>
-          <span className="text-slate-500">{army.units.length} Всего</span>
+          <span className="text-slate-500">{army.units.length} <span className="hidden sm:inline">Всего</span></span>
         </div>
       </div>
     </div>

@@ -51,10 +51,13 @@ export default function Home() {
           >
             <Shield className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
-          <div className="hidden sm:block">
-            <h1 className="text-lg md:text-xl font-bold tracking-tight leading-none bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">БРОНЕПЕХОТА</h1>
+          <div>
+            <h1 className="text-sm md:text-lg md:text-xl font-bold tracking-tight leading-none bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+              <span className="hidden md:inline">БРОНЕПЕХОТА</span>
+              <span className="md:hidden">БП</span>
+            </h1>
             <span
-              className="text-[10px] font-black uppercase tracking-widest transition-colors duration-300"
+              className="text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-colors duration-300"
               style={{ color: activeFaction?.color || '#ef4444' }}
             >
               {activeFaction?.name}

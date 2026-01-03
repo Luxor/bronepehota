@@ -210,20 +210,20 @@ export default function ArmlistEditor({
       <div className="flex gap-2 md:gap-3">
         <button
           onClick={() => setEditorMode('squad')}
-          className={`flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl font-medium transition-all duration-200 min-h-[44px] md:min-h-0 ${
+          className={`flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all duration-200 min-h-[44px] md:min-h-0 border-2 ${
             editorMode === 'squad'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 scale-105'
-              : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700 border border-slate-700/50'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 scale-105 border-blue-500'
+              : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border-slate-700'
           }`}
         >
           Взвод солдат
         </button>
         <button
           onClick={() => setEditorMode('machine')}
-          className={`flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl font-medium transition-all duration-200 min-h-[44px] md:min-h-0 ${
+          className={`flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold transition-all duration-200 min-h-[44px] md:min-h-0 border-2 ${
             editorMode === 'machine'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 scale-105'
-              : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700 border border-slate-700/50'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 scale-105 border-blue-500'
+              : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border-slate-700'
           }`}
         >
           Техника
@@ -338,7 +338,7 @@ function SquadEditor({ data, setData, onImagePaste, onImageUpload, onSave, savin
             <select
               value={data.faction || 'polaris'}
               onChange={(e) => setData({ ...data, faction: e.target.value as FactionID })}
-              className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+              className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-500"
             >
               {factionsData.map(f => (
                 <option key={f.id} value={f.id}>{f.name}</option>
@@ -352,7 +352,7 @@ function SquadEditor({ data, setData, onImagePaste, onImageUpload, onSave, savin
               type="number"
               value={data.cost || 0}
               onChange={(e) => setData({ ...data, cost: parseInt(e.target.value) || 0 })}
-              className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+              className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-500"
             />
           </div>
         </div>
@@ -363,7 +363,7 @@ function SquadEditor({ data, setData, onImagePaste, onImageUpload, onSave, savin
             type="text"
             value={data.name || ''}
             onChange={(e) => setData({ ...data, name: e.target.value })}
-            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-500"
             placeholder="Например: Легкая штурмовая клон-пехота"
           />
         </div>
@@ -374,7 +374,7 @@ function SquadEditor({ data, setData, onImagePaste, onImageUpload, onSave, savin
             type="url"
             value={data.originalUrl || ''}
             onChange={(e) => setData({ ...data, originalUrl: e.target.value })}
-            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-500"
             placeholder="https://vk.com/photo-..."
           />
         </div>
@@ -476,7 +476,7 @@ function SoldierEditor({
             type="number"
             value={soldier.rank}
             onChange={(e) => onUpdate('rank', parseInt(e.target.value) || 0)}
-            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
           />
         </div>
 
@@ -486,7 +486,7 @@ function SoldierEditor({
             type="number"
             value={soldier.speed}
             onChange={(e) => onUpdate('speed', parseInt(e.target.value) || 0)}
-            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
           />
         </div>
 
@@ -496,7 +496,7 @@ function SoldierEditor({
             type="text"
             value={soldier.range}
             onChange={(e) => onUpdate('range', e.target.value)}
-            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
             placeholder="D6, D12, ББ"
           />
         </div>
@@ -507,7 +507,7 @@ function SoldierEditor({
             type="text"
             value={soldier.power}
             onChange={(e) => onUpdate('power', e.target.value)}
-            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
             placeholder="1D6, 2D12"
           />
         </div>
@@ -518,7 +518,7 @@ function SoldierEditor({
             type="number"
             value={soldier.melee}
             onChange={(e) => onUpdate('melee', parseInt(e.target.value) || 0)}
-            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
           />
         </div>
 
@@ -528,7 +528,7 @@ function SoldierEditor({
             type="number"
             value={soldier.armor}
             onChange={(e) => onUpdate('armor', parseInt(e.target.value) || 0)}
-            className="w-full bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
           />
         </div>
       </div>
@@ -557,7 +557,7 @@ function SoldierEditor({
                 setNewProp('');
               }
             }}
-            className="flex-1 bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="flex-1 bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
             placeholder="Например: Г (граната)"
           />
           <button

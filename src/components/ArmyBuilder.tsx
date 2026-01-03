@@ -116,13 +116,13 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
               <input
                 type="text"
                 placeholder="Поиск..."
-                className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <select
-              className="bg-slate-900/80 border border-slate-700/50 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer min-h-[44px]"
+              className="bg-slate-800 border-2 border-slate-600 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all cursor-pointer min-h-[44px]"
               value={filterFaction}
               onChange={(e) => setFilterFaction(e.target.value as FactionID | 'all')}
             >
@@ -213,7 +213,7 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
       <div className="w-full lg:w-96 flex flex-col gap-4">
         {/* Faction Lore Card */}
         {selectedFactionData && (
-          <div className="hidden lg:block glass-strong p-5 rounded-2xl shadow-xl border border-slate-700/50 overflow-hidden relative group">
+          <div className="glass-strong p-4 md:p-5 rounded-2xl shadow-xl border border-slate-700/50 overflow-hidden relative group">
             <div
               className="absolute top-0 right-0 w-40 h-40 -mr-16 -mt-16 opacity-5 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12 flex items-center justify-center"
               style={{ backgroundColor: selectedFactionData.color, borderRadius: '50%' }}
@@ -228,28 +228,32 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
               Досье фракции
             </h3>
             <div className="relative">
-              <div className="text-xl font-bold mb-2 flex items-center gap-2" style={{ color: selectedFactionData.color }}>
+              <div className="text-lg md:text-xl font-bold mb-2 flex items-center gap-2" style={{ color: selectedFactionData.color }}>
                 {(() => {
                   const Icon = factionIcons[selectedFactionData.symbol];
-                  return Icon ? <Icon className="w-6 h-6" /> : null;
+                  return Icon ? <Icon className="w-5 h-5 md:w-6 md:h-6" /> : null;
                 })()}
                 {selectedFactionData.name}
               </div>
-              <div className="flex items-center gap-2 text-xs opacity-60 mb-4">
-                <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5" /> {selectedFactionData.homeWorld}</span>
+              <div className="flex items-center gap-2 text-[10px] md:text-xs opacity-60 mb-4">
+                <span className="flex items-center gap-1"><Globe className="w-3 h-3.5 md:w-3.5" /> {selectedFactionData.homeWorld}</span>
                 <span>•</span>
-                <span className="italic flex items-center gap-1"><Quote className="w-3.5 h-3.5" /> {selectedFactionData.motto}</span>
+                <span className="italic flex items-center gap-1"><Quote className="w-3 h-3.5 md:w-3.5" /> {selectedFactionData.motto}</span>
               </div>
-              <p className="text-sm leading-relaxed opacity-80 mb-4">
+              <p className="text-xs md:text-sm leading-relaxed opacity-80 mb-4">
                 {selectedFactionData.description}
               </p>
               <select
-                className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer"
+                className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all cursor-pointer"
                 value={army.faction}
-                onChange={(e) => setArmy({ ...army, faction: e.target.value as FactionID })}
+                onChange={(e) => {
+                  const newFaction = e.target.value as FactionID;
+                  setArmy({ ...army, faction: newFaction });
+                  setFilterFaction(newFaction);
+                }}
               >
                 {factionsData.map(f => (
-                  <option key={f.id} value={f.id}>Сменить штаб на {f.name}</option>
+                  <option key={f.id} value={f.id}>{f.name}</option>
                 ))}
               </select>
             </div>
