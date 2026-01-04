@@ -87,4 +87,10 @@ export interface Army {
   faction: FactionID;
   units: ArmyUnit[];
   totalCost: number;
+  // Army Building Flow extensions
+  pointBudget?: number;
+  currentStep?: 'faction-select' | 'unit-select' | 'battle';
+  isInBattle?: boolean;
+  isLoading?: boolean;
+  loadError?: string;
 }

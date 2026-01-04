@@ -6,10 +6,19 @@ import squadsData from '@/data/squads.json';
 import machinesData from '@/data/machines.json';
 import factionsData from '@/data/factions.json';
 import { Plus, Trash2, Shield, Sword, Cpu, Box, Search, Download, Upload, Info, Globe, Quote, Users, Zap, Skull, LucideIcon } from 'lucide-react';
+import { FactionSelector } from './FactionSelector';
+import { PointBudgetInput } from './PointBudgetInput';
+import { UnitSelector } from './UnitSelector';
+
+// Type assertions for JSON imports
+const typedFactions = factionsData as Faction[];
+const typedSquads = squadsData as Squad[];
+const typedMachines = machinesData as Machine[];
 
 interface ArmyBuilderProps {
   army: Army;
   setArmy: (army: Army) => void;
+  onEnterBattle?: () => void;
 }
 
 const factionIcons: Record<string, LucideIcon> = {
@@ -18,11 +27,11 @@ const factionIcons: Record<string, LucideIcon> = {
   Skull
 };
 
-export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
+export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilderProps) {
   const [filterFaction, setFilterFaction] = useState<FactionID | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const selectedFactionData = factionsData.find(f => f.id === army.faction) as Faction & { symbol: string } | undefined;
+  const selectedFactionData = typedFactions.find(f => f.id === army.faction) as Faction & { symbol: string } | undefined;
 
   const exportArmy = () => {
     const data = JSON.stringify(army, null, 2);
@@ -87,15 +96,91 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
     });
   };
 
-  const filteredSquads = (squadsData as Squad[]).filter(s => 
+  const filteredSquads = typedSquads.filter(s =>
     (filterFaction === 'all' || s.faction === filterFaction) &&
     s.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredMachines = (machinesData as Machine[]).filter(m => 
+  const filteredMachines = typedMachines.filter(m =>
     (filterFaction === 'all' || m.faction === filterFaction) &&
     m.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Check if we're in guided flow mode
+  if (army.currentStep === 'faction-select' || army.currentStep === 'unit-select') {
+    // Guided flow - render new components
+    return (
+      <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+        {army.currentStep === 'faction-select' && (
+          <div className="space-y-8">
+            <FactionSelector
+              factions={typedFactions}
+              selectedFaction={army.faction}
+              onFactionSelect={(factionId) => setArmy({ ...army, faction: factionId })}
+            />
+            {army.faction && (
+              <PointBudgetInput
+                presets={[250, 350, 500, 1000]}
+                value={army.pointBudget}
+                onChange={(budget) => setArmy({
+                  ...army,
+                  pointBudget: budget,
+                  currentStep: 'unit-select',
+                })}
+              />
+            )}
+          </div>
+        )}
+
+        {army.currentStep === 'unit-select' && army.pointBudget && (
+          <UnitSelector
+            factions={typedFactions}
+            squads={typedSquads}
+            selectedFaction={army.faction}
+            pointBudget={army.pointBudget}
+            army={army.units}
+            onAddUnit={(squad) => {
+              const newUnit: ArmyUnit = {
+                instanceId: `${squad.id}_${Date.now()}`,
+                type: 'squad',
+                data: squad,
+                currentDurability: undefined,
+                currentAmmo: undefined,
+                deadSoldiers: [],
+                actionsUsed: Array(squad.soldiers.length).fill({
+                  moved: false,
+                  shot: false,
+                  melee: false,
+                  done: false,
+                }),
+              };
+              setArmy({
+                ...army,
+                units: [...army.units, newUnit],
+                totalCost: army.totalCost + squad.cost,
+              });
+            }}
+            onRemoveUnit={(instanceId) => {
+              const unitToRemove = army.units.find(u => u.instanceId === instanceId);
+              if (!unitToRemove) return;
+              setArmy({
+                ...army,
+                units: army.units.filter(u => u.instanceId !== instanceId),
+                totalCost: army.totalCost - unitToRemove.data.cost,
+              });
+            }}
+            onToBattle={onEnterBattle || (() => {
+              setArmy({
+                ...army,
+                isInBattle: true,
+                currentStep: 'battle',
+              });
+            })}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 md:p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 h-full max-w-7xl mx-auto">
@@ -127,7 +212,7 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
               onChange={(e) => setFilterFaction(e.target.value as FactionID | 'all')}
             >
               <option value="all">Все фракции</option>
-              {factionsData.map(f => (
+              {typedFactions.map(f => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </select>
@@ -136,7 +221,7 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 overflow-y-auto max-h-[55vh] lg:max-h-[60vh] pr-2 custom-scrollbar">
             {/* Squads */}
             {filteredSquads.map(s => {
-              const f = factionsData.find(fac => fac.id === s.faction);
+              const f = typedFactions.find(fac => fac.id === s.faction);
               const FactionIcon = factionIcons[(f as any)?.symbol || 'Shield'];
               return (
                 <div key={s.id} className="group relative overflow-hidden bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-blue-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
@@ -172,7 +257,7 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
 
             {/* Machines */}
             {filteredMachines.map(m => {
-              const f = factionsData.find(fac => fac.id === m.faction);
+              const f = typedFactions.find(fac => fac.id === m.faction);
               const FactionIcon = factionIcons[(f as any)?.symbol || 'Shield'];
               return (
                 <div key={m.id} className="group relative overflow-hidden bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-orange-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
@@ -252,7 +337,7 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
                   setFilterFaction(newFaction);
                 }}
               >
-                {factionsData.map(f => (
+                {typedFactions.map(f => (
                   <option key={f.id} value={f.id}>{f.name}</option>
                 ))}
               </select>
@@ -285,7 +370,7 @@ export default function ArmyBuilder({ army, setArmy }: ArmyBuilderProps) {
               </div>
             ) : (
               army.units.map((unit) => {
-                const f = factionsData.find(fac => fac.id === unit.data.faction);
+                const f = typedFactions.find(fac => fac.id === unit.data.faction);
                 const FactionIcon = factionIcons[(f as any)?.symbol || 'Shield'];
                 return (
                   <div key={unit.instanceId} className="group bg-slate-900/50 hover:bg-slate-900/70 p-3 rounded-xl border border-slate-700/50 hover:border-red-500/50 flex justify-between items-center relative overflow-hidden transition-all duration-200">
