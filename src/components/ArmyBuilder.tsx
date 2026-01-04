@@ -176,6 +176,15 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
                 currentStep: 'battle',
               });
             })}
+            onBackToFactionSelect={() => {
+              setArmy({
+                ...army,
+                units: [],
+                totalCost: 0,
+                pointBudget: undefined,
+                currentStep: 'faction-select',
+              });
+            }}
           />
         )}
       </div>

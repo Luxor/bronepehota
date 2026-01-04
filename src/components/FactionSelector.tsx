@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, KeyboardEvent } from 'react';
+import React, { useState, KeyboardEvent, useEffect } from 'react';
 import type { Faction, FactionID } from '@/lib/types';
 
 interface FactionSelectorProps {
@@ -38,6 +38,13 @@ export function FactionSelector({
   loadError = null,
 }: FactionSelectorProps) {
   const [expandedFaction, setExpandedFaction] = useState<FactionID | null>(null);
+
+  // Auto-expand selected faction on mount or when it changes
+  useEffect(() => {
+    if (selectedFaction && expandedFaction !== selectedFaction) {
+      setExpandedFaction(selectedFaction);
+    }
+  }, [selectedFaction, expandedFaction]);
 
   const handleFactionClick = (factionId: FactionID) => {
     onFactionSelect(factionId);
@@ -125,6 +132,11 @@ export function FactionSelector({
                 )}
               </div>
 
+              {/* Motto - always visible */}
+              <p className="text-sm italic text-slate-400 mb-2" style={{ color: isSelected ? faction.color : undefined }}>
+                "{faction.motto}"
+              </p>
+
               {/* Color indicator bar */}
               <div className="h-1 rounded" style={{ backgroundColor: faction.color }}></div>
 
@@ -132,7 +144,6 @@ export function FactionSelector({
               {isExpanded && (
                 <div className="mt-4 space-y-2 text-sm text-slate-400">
                   <p>{faction.description}</p>
-                  <p className="italic">"{faction.motto}"</p>
                   <p className="text-xs">Родной мир: {faction.homeWorld}</p>
                 </div>
               )}

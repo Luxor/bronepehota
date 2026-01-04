@@ -2,7 +2,7 @@
 
 import React, { useState, KeyboardEvent } from 'react';
 import type { Faction, Squad, ArmyUnit, FactionID } from '@/lib/types';
-import { Check, X, Plus } from 'lucide-react';
+import { Check, X, Plus, ArrowLeft } from 'lucide-react';
 
 interface UnitSelectorProps {
   factions: Faction[];
@@ -13,6 +13,7 @@ interface UnitSelectorProps {
   onAddUnit: (squad: Squad) => void;
   onRemoveUnit: (instanceId: string) => void;
   onToBattle: () => void;
+  onBackToFactionSelect?: () => void;
   isLoading?: boolean;
   loadError?: string | null;
 }
@@ -39,6 +40,7 @@ export function UnitSelector({
   onAddUnit,
   onRemoveUnit,
   onToBattle,
+  onBackToFactionSelect,
   isLoading = false,
   loadError = null,
 }: UnitSelectorProps) {
@@ -106,14 +108,36 @@ export function UnitSelector({
   // Empty state
   if (availableSquads.length === 0) {
     return (
-      <div className="text-center p-12 bg-slate-800/50 rounded-lg">
-        <p className="text-slate-400 text-lg">Нет доступных юнитов</p>
+      <div className="text-center p-6 sm:p-12 bg-slate-800/50 rounded-lg space-y-6">
+        <p className="text-slate-400 text-base sm:text-lg">Для этой фракции пока нет доступных юнитов</p>
+        {onBackToFactionSelect && (
+          <button
+            onClick={onBackToFactionSelect}
+            className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2 mx-auto min-h-[48px] touch-manipulation"
+          >
+            <ArrowLeft size={20} className="flex-shrink-0" />
+            <span className="hidden sm:inline">Вернуться к выбору фракции</span>
+            <span className="sm:hidden">Назад к фракции</span>
+          </button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Back to faction select button */}
+      {onBackToFactionSelect && (
+        <button
+          onClick={onBackToFactionSelect}
+          className="w-full sm:w-auto px-3 sm:px-4 py-3 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 min-h-[48px] touch-manipulation"
+        >
+          <ArrowLeft size={18} className="flex-shrink-0" />
+          <span className="hidden sm:inline">Вернуться к выбору фракции</span>
+          <span className="sm:hidden">Назад к фракции</span>
+        </button>
+      )}
+
       {/* Budget display */}
       <div
         role="status"
