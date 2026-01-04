@@ -17,9 +17,11 @@ function cn(...inputs: ClassValue[]) {
 interface GameSessionProps {
   army: Army;
   setArmy: (army: Army) => void;
+  isInBattle?: boolean;
+  onEndBattle?: () => void;
 }
 
-export default function GameSession({ army, setArmy }: GameSessionProps) {
+export default function GameSession({ army, setArmy, isInBattle = false, onEndBattle }: GameSessionProps) {
   const [showInitiative, setShowInitiative] = useState(false);
   const [initRoll, setInitRoll] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
@@ -132,7 +134,7 @@ export default function GameSession({ army, setArmy }: GameSessionProps) {
 
       {/* Unified Top Bar with Controls and Unit Navigation */}
       <div className="bg-slate-900/90 border-b border-slate-800/50 shrink-0">
-        {/* Top Row: View toggle, New Turn, Combat toggle */}
+        {/* Top Row: View toggle, New Turn, Combat toggle, End Battle */}
         <div className="flex items-center justify-between px-2 md:px-3 py-2 gap-1 md:gap-2 border-b border-slate-800/30">
           {/* View Mode Toggle */}
           <div className="flex gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/50 shrink-0">
@@ -174,6 +176,17 @@ export default function GameSession({ army, setArmy }: GameSessionProps) {
             <Target className="w-3.5 h-3.5 md:w-4 md:h-4" />
             <span className="hidden sm:inline">Атака</span>
           </button>
+
+          {/* End Battle Button - only shown when isInBattle is true */}
+          {isInBattle && onEndBattle && (
+            <button
+              onClick={onEndBattle}
+              className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase bg-red-600/20 text-red-400 border border-red-500/40 px-2 md:px-3 py-1.5 md:py-2 rounded-lg transition-all hover:bg-red-600/30 active:scale-95 shadow-lg shrink-0"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Завершить бой</span>
+            </button>
+          )}
         </div>
 
         {/* Unit Navigation Row with Arrows */}

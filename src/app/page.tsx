@@ -15,17 +15,51 @@ export default function Home() {
     name: 'Моя Армия',
     faction: 'polaris',
     units: [],
-    totalCost: 0
+    totalCost: 0,
+    currentStep: 'faction-select',
+    isInBattle: false,
   });
 
   const activeFaction = factionsData.find(f => f.id === army.faction);
+
+  // Handle entering battle phase
+  const handleEnterBattle = () => {
+    setArmy({
+      ...army,
+      isInBattle: true,
+      currentStep: 'battle',
+    });
+    setView('game');
+  };
+
+  // Handle ending battle phase (reset to fresh faction selection)
+  const handleEndBattle = () => {
+    setArmy({
+      name: 'Моя Армия',
+      faction: 'polaris',
+      units: [],
+      totalCost: 0,
+      pointBudget: undefined,
+      currentStep: 'faction-select',
+      isInBattle: false,
+    });
+    setView('builder');
+  };
 
   // Load army from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('bronepehota_army');
     if (saved) {
       try {
-        setArmy(JSON.parse(saved));
+        const loadedArmy = JSON.parse(saved);
+        // Initialize currentStep if not present (for backward compatibility)
+        if (!loadedArmy.currentStep) {
+          loadedArmy.currentStep = 'faction-select';
+        }
+        if (loadedArmy.isInBattle === undefined) {
+          loadedArmy.isInBattle = false;
+        }
+        setArmy(loadedArmy);
       } catch (e) {
         console.error('Failed to load army', e);
       }
@@ -66,18 +100,21 @@ export default function Home() {
         </div>
 
         <nav className="flex gap-1.5 md:gap-2">
-          <button
-            onClick={() => setView('builder')}
-            className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all duration-200 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 font-medium ${
-              view === 'builder'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 scale-105'
-                : 'bg-slate-700/50 hover:bg-slate-600 text-slate-300 hover:text-white'
-            }`}
-            title="Штаб"
-          >
-            <Users className="w-5 h-5 md:w-4 md:h-4" />
-            <span className="hidden md:inline">Штаб</span>
-          </button>
+          {/* Штаб button - hidden during battle phase */}
+          {!army.isInBattle && (
+            <button
+              onClick={() => setView('builder')}
+              className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all duration-200 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 font-medium ${
+                view === 'builder'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 scale-105'
+                  : 'bg-slate-700/50 hover:bg-slate-600 text-slate-300 hover:text-white'
+              }`}
+              title="Штаб"
+            >
+              <Users className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="hidden md:inline">Штаб</span>
+            </button>
+          )}
           <button
             onClick={() => setView('game')}
             className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl transition-all duration-200 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 font-medium ${
@@ -104,9 +141,18 @@ export default function Home() {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {view === 'builder' ? (
-          <ArmyBuilder army={army} setArmy={setArmy} />
+          <ArmyBuilder
+            army={army}
+            setArmy={setArmy}
+            onEnterBattle={handleEnterBattle}
+          />
         ) : (
-          <GameSession army={army} setArmy={setArmy} />
+          <GameSession
+            army={army}
+            setArmy={setArmy}
+            isInBattle={army.isInBattle}
+            onEndBattle={handleEndBattle}
+          />
         )}
       </div>
 

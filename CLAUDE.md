@@ -115,3 +115,10 @@ Jest with jsdom environment. Tests focus on game logic utilities (`game-logic.ts
 3. **Speed sectors** must cover full range from 1 to `durability_max` without gaps
 4. **Props** are string arrays: `["Г"]` for grenade, `[]` for none
 5. **Images**: Max 10MB, saved with timestamp + random suffix for uniqueness
+
+## Active Technologies
+- TypeScript 5.x (via Next.js 14) + React 18, Next.js 14, Tailwind CSS, Lucide React (001-army-building-flow)
+- JSON files in `src/data/` (factions.json, squads.json) + localStorage for army state (001-army-building-flow)
+
+## Recent Changes
+- 001-army-building-flow: Added TypeScript 5.x (via Next.js 14) + React 18, Next.js 14, Tailwind CSS, Lucide React
