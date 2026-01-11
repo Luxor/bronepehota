@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, KeyboardEvent } from 'react';
+import React, { useState, KeyboardEvent, useMemo } from 'react';
 import type { Faction, Squad, ArmyUnit, FactionID } from '@/lib/types';
 import { Check, X, Plus, ArrowLeft, Info } from 'lucide-react';
 import { UnitDetailsModal } from './UnitDetailsModal';
+import { countByUnitType } from '@/lib/unit-utils';
 
 interface UnitSelectorProps {
   factions: Faction[];
@@ -46,6 +47,11 @@ export function UnitSelector({
   loadError = null,
 }: UnitSelectorProps) {
   const [showWarning, setShowWarning] = useState(false);
+
+  // Count units by type for badges
+  const unitCounts = useMemo(() => {
+    return countByUnitType(army);
+  }, [army]);
 
   // Modal state for viewing unit details
   const [selectedSquad, setSelectedSquad] = useState<Squad | null>(null);
@@ -214,7 +220,7 @@ export function UnitSelector({
                   aria-label={`Добавить ${squad.name}`}
                   className={`
                     w-full py-3 px-4 rounded-lg font-semibold transition-all
-                    flex items-center justify-center gap-2 min-h-[48px] min-w-[48px] touch-manipulation
+                    flex items-center justify-center gap-2 min-h-[48px] min-w-[48px] touch-manipulation relative
                     ${affordable
                       ? 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
                       : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
@@ -223,6 +229,12 @@ export function UnitSelector({
                 >
                   <Plus size={20} />
                   Добавить
+                  {/* Count badge */}
+                  {unitCounts[squad.id] > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-6 min-w-[24px] flex items-center justify-center border-2 border-slate-900">
+                      {unitCounts[squad.id]}
+                    </span>
+                  )}
                 </button>
               </div>
             );

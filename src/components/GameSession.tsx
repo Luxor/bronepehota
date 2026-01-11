@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Army, ArmyUnit, Squad, Machine } from '@/lib/types';
 import UnitCard from './UnitCard';
 import DiceRoller from './DiceRoller';
 import CombatAssistant from './CombatAssistant';
 import { LayoutGrid, Target, Dices, RotateCcw, Users, X, Info, ChevronLeft, ChevronRight, Maximize2, Minimize2, CheckCircle2, Bomb, Heart, UserX } from 'lucide-react';
 import { rollDie } from '@/lib/game-logic';
+import { formatUnitNumber, countByUnitType } from '@/lib/unit-utils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -37,6 +38,15 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
       units: army.units.map(u => u.instanceId === updatedUnit.instanceId ? updatedUnit : u)
     });
   };
+
+  // Calculate unit counts for badges
+  const unitCounts = useMemo(() => {
+    return countByUnitType(army.units);
+  }, [army.units]);
+
+  // Get squad and machine counts
+  const squadCount = army.units.filter(u => u.type === 'squad').length;
+  const machineCount = army.units.filter(u => u.type === 'machine').length;
 
   const calculateInitiative = () => {
     setIsRolling(true);
@@ -231,7 +241,7 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
                   )}
                 >
                   {/* Unit Number */}
-                  <div className="text-sm md:text-base font-black relative z-10">{idx + 1}</div>
+                  <div className="text-sm md:text-base font-black relative z-10">{formatUnitNumber(unit, idx)}</div>
 
                   {/* Unit Type Icon */}
                   {unit.type === 'squad' ? (

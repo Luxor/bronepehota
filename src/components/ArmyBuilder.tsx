@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Army, ArmyUnit, FactionID, Faction, Squad, Machine } from '@/lib/types';
+import { countByUnitType, validateAddUnit } from '@/lib/unit-utils';
 import squadsData from '@/data/squads.json';
 import machinesData from '@/data/machines.json';
 import factionsData from '@/data/factions.json';
@@ -37,6 +38,12 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
   const [selectedUnitType, setSelectedUnitType] = useState<'squad' | 'machine'>('squad');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Unit count badges and error state
+  const [addError, setAddError] = useState<string | null>(null);
+  const unitCounts = useMemo(() => {
+    return countByUnitType(army.units);
+  }, [army.units]);
+
   const selectedFactionData = typedFactions.find(f => f.id === army.faction) as Faction & { symbol: string } | undefined;
 
   const exportArmy = () => {
@@ -66,11 +73,24 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
   };
 
   const addUnit = (unit: Squad | Machine, type: 'squad' | 'machine') => {
-    console.log('addUnit called', { unit, type });
+    // Validate 99-unit limit
+    const validation = validateAddUnit(army, unit.id);
+    if (!validation.valid) {
+      setAddError(validation.error);
+      setTimeout(() => setAddError(null), 3000);
+      return;
+    }
+    setAddError(null);
+
+    // Calculate instance number for this unit type
+    const existingUnitsOfType = army.units.filter(u => u.data.id === unit.id);
+    const instanceNumber = existingUnitsOfType.length + 1;
+
     const newUnit: ArmyUnit = {
       instanceId: `${unit.id}-${Date.now()}`,
       type,
       data: unit,
+      instanceNumber,
       currentDurability: type === 'machine' ? (unit as Machine).durability_max : undefined,
       currentAmmo: type === 'machine' ? (unit as Machine).ammo_max : undefined,
       deadSoldiers: [],
@@ -80,9 +100,6 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
       machineShotsUsed: type === 'machine' ? 0 : undefined,
       machineWeaponShots: type === 'machine' ? {} : undefined
     };
-
-    console.log('newUnit created', newUnit);
-    console.log('current army units count', army.units.length);
 
     setArmy({
       ...army,
@@ -153,10 +170,15 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
             pointBudget={army.pointBudget}
             army={army.units}
             onAddUnit={(squad) => {
+              // Calculate instance number for this unit type
+              const existingUnitsOfType = army.units.filter(u => u.data.id === squad.id);
+              const instanceNumber = existingUnitsOfType.length + 1;
+
               const newUnit: ArmyUnit = {
                 instanceId: `${squad.id}_${Date.now()}`,
                 type: 'squad',
                 data: squad,
+                instanceNumber,
                 currentDurability: undefined,
                 currentAmmo: undefined,
                 deadSoldiers: [],
@@ -240,6 +262,13 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
             </select>
           </div>
 
+          {/* Error message for unit limit */}
+          {addError && (
+            <div className="text-red-500 text-sm mb-4 animate-pulse">
+              {addError}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 overflow-y-auto max-h-[55vh] lg:max-h-[60vh] pr-2 custom-scrollbar">
             {/* Squads */}
             {filteredSquads.map(s => {
@@ -249,7 +278,7 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
                 <div
                   key={s.id}
                   onClick={() => handleUnitClick(s, 'squad')}
-                  className="group relative overflow-hidden bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-blue-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-pointer"
+                  className="group relative bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-blue-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-pointer"
                 >
                   <div
                     className="absolute top-0 left-0 w-1.5 h-full rounded-r-full transition-all duration-200 group-hover:w-2 pointer-events-none"
@@ -276,9 +305,12 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
                       e.stopPropagation();
                       addUnit(s, 'squad');
                     }}
-                    className="absolute top-3 right-3 z-20 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-all shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 active:scale-95 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
+                    className="absolute top-3 right-3 z-20 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-all shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 active:scale-95 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center relative"
                   >
                     <Plus className="w-5 h-5" />
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center z-30 border-2 border-slate-900">
+                      {unitCounts[s.id] || 0}
+                    </span>
                   </button>
                 </div>
               );
@@ -293,7 +325,7 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
                 <div
                   key={m.id}
                   onClick={() => handleUnitClick(m, 'machine')}
-                  className="group relative overflow-hidden bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-orange-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-pointer"
+                  className="group relative bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-orange-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-pointer"
                 >
                   <div
                     className="absolute top-0 left-0 w-1.5 h-full rounded-r-full transition-all duration-200 group-hover:w-2 pointer-events-none"
@@ -320,9 +352,12 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
                       e.stopPropagation();
                       addUnit(m, 'machine');
                     }}
-                    className="absolute top-3 right-3 z-20 bg-orange-600 hover:bg-orange-500 text-white p-2 rounded-lg transition-all shadow-lg shadow-orange-900/40 hover:shadow-orange-900/60 active:scale-95 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
+                    className="absolute top-3 right-3 z-20 bg-orange-600 hover:bg-orange-500 text-white p-2 rounded-lg transition-all shadow-lg shadow-orange-900/40 hover:shadow-orange-900/60 active:scale-95 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center relative"
                   >
                     <Plus className="w-5 h-5" />
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center z-30 border-2 border-slate-900">
+                      {unitCounts[m.id] || 0}
+                    </span>
                   </button>
                 </div>
               );

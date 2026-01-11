@@ -120,6 +120,8 @@ Jest with jsdom environment. Tests focus on game logic utilities (`game-logic.ts
 - TypeScript 5.x (via Next.js 14) + React 18, Next.js 14, Tailwind CSS, Lucide React (001-army-building-flow)
 - JSON files in `src/data/` (factions.json, squads.json) + localStorage for army state (001-army-building-flow)
 - JSON files in `src/data/` (factions.json, squads.json, machines.json) + localStorage for army state (001-show-unit-details)
+- TypeScript 5.x (via Next.js 14) + React 18 + Next.js 14, React 18, Tailwind CSS, Lucide React (001-unit-numbering)
+- JSON files in `src/data/` (factions.json, squads.json, machines.json) + localStorage for army state (`bronepehota_army`) (001-unit-numbering)
 
 ## Recent Changes
 - 001-army-building-flow: Added TypeScript 5.x (via Next.js 14) + React 18, Next.js 14, Tailwind CSS, Lucide React
