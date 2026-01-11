@@ -925,7 +925,7 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
                             <span>{w.range}</span>
                             <span>•</span>
                             <span>{w.power}</span>
-                            {w.special && <span className="opacity-50 hidden sm:inline">• {w.special}</span>}
+                            {w.special && <span className="opacity-50 hidden sm:inline">• {typeof w.special === 'string' ? w.special : 'особый эффект'}</span>}
                           </div>
                         </div>
                         <button

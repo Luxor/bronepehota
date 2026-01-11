@@ -864,7 +864,7 @@ function MachineEditor({ data, setData, onImagePaste, onImageUpload, onSave, sav
               </div>
               <input
                 type="text"
-                value={weapon.special || ''}
+                value={typeof weapon.special === 'string' ? weapon.special : JSON.stringify(weapon.special || '')}
                 onChange={(e) => updateWeapon(idx, 'special', e.target.value)}
                 className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm"
                 placeholder="Спец свойство (опционально)"

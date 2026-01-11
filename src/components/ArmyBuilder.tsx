@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Army, ArmyUnit, FactionID, Faction, Squad, Machine } from '@/lib/types';
 import { countByUnitType, validateAddUnit } from '@/lib/unit-utils';
 import squadsData from '@/data/squads.json';
@@ -33,7 +33,7 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
   const [filterFaction, setFilterFaction] = useState<FactionID | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // T023: Add modal state management (selectedUnit, isModalOpen)
+  // Modal state management (selectedUnit, isModalOpen)
   const [selectedUnit, setSelectedUnit] = useState<Squad | Machine | null>(null);
   const [selectedUnitType, setSelectedUnitType] = useState<'squad' | 'machine'>('squad');
   const [isModalOpen, setIsModalOpen] = useState(false);
