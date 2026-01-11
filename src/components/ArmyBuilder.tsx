@@ -9,6 +9,7 @@ import { Plus, Trash2, Shield, Sword, Cpu, Box, Search, Download, Upload, Info, 
 import { FactionSelector } from './FactionSelector';
 import { PointBudgetInput } from './PointBudgetInput';
 import { UnitSelector } from './UnitSelector';
+import { UnitDetailsModal } from './UnitDetailsModal';
 
 // Type assertions for JSON imports
 const typedFactions = factionsData as Faction[];
@@ -30,6 +31,11 @@ const factionIcons: Record<string, LucideIcon> = {
 export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilderProps) {
   const [filterFaction, setFilterFaction] = useState<FactionID | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // T023: Add modal state management (selectedUnit, isModalOpen)
+  const [selectedUnit, setSelectedUnit] = useState<Squad | Machine | null>(null);
+  const [selectedUnitType, setSelectedUnitType] = useState<'squad' | 'machine'>('squad');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const selectedFactionData = typedFactions.find(f => f.id === army.faction) as Faction & { symbol: string } | undefined;
 
@@ -94,6 +100,13 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
       units: army.units.filter(u => u.instanceId !== instanceId),
       totalCost: army.totalCost - unitToRemove.data.cost
     });
+  };
+
+  // T022: Add click handler to squad/machine cards to open modal with unit data
+  const handleUnitClick = (unit: Squad | Machine, type: 'squad' | 'machine') => {
+    setSelectedUnit(unit);
+    setSelectedUnitType(type);
+    setIsModalOpen(true);
   };
 
   const filteredSquads = typedSquads.filter(s =>
@@ -233,7 +246,11 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
               const f = typedFactions.find(fac => fac.id === s.faction);
               const FactionIcon = factionIcons[(f as any)?.symbol || 'Shield'];
               return (
-                <div key={s.id} className="group relative overflow-hidden bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-blue-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
+                <div
+                  key={s.id}
+                  onClick={() => handleUnitClick(s, 'squad')}
+                  className="group relative overflow-hidden bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-blue-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-pointer"
+                >
                   <div
                     className="absolute top-0 left-0 w-1.5 h-full rounded-r-full transition-all duration-200 group-hover:w-2 pointer-events-none"
                     style={{ backgroundColor: f?.color }}
@@ -255,7 +272,10 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
                     </div>
                   </div>
                   <button
-                    onClick={() => addUnit(s, 'squad')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addUnit(s, 'squad');
+                    }}
                     className="absolute top-3 right-3 z-20 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-all shadow-lg shadow-blue-900/40 hover:shadow-blue-900/60 active:scale-95 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
                   >
                     <Plus className="w-5 h-5" />
@@ -269,7 +289,12 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
               const f = typedFactions.find(fac => fac.id === m.faction);
               const FactionIcon = factionIcons[(f as any)?.symbol || 'Shield'];
               return (
-                <div key={m.id} className="group relative overflow-hidden bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-orange-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
+                // T038: Add click handler to machine cards to open modal with machine data
+                <div
+                  key={m.id}
+                  onClick={() => handleUnitClick(m, 'machine')}
+                  className="group relative overflow-hidden bg-slate-700/40 hover:bg-slate-700/60 p-3 md:p-4 pr-14 rounded-xl border border-slate-600/50 hover:border-orange-500/50 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-pointer"
+                >
                   <div
                     className="absolute top-0 left-0 w-1.5 h-full rounded-r-full transition-all duration-200 group-hover:w-2 pointer-events-none"
                     style={{ backgroundColor: f?.color }}
@@ -291,7 +316,10 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
                     </div>
                   </div>
                   <button
-                    onClick={() => addUnit(m, 'machine')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addUnit(m, 'machine');
+                    }}
                     className="absolute top-3 right-3 z-20 bg-orange-600 hover:bg-orange-500 text-white p-2 rounded-lg transition-all shadow-lg shadow-orange-900/40 hover:shadow-orange-900/60 active:scale-95 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
                   >
                     <Plus className="w-5 h-5" />
@@ -450,6 +478,17 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
           </div>
         </div>
       </div>
+
+      {/* T024: Import and render UnitDetailsModal */}
+      {selectedUnit && selectedFactionData && (
+        <UnitDetailsModal
+          unit={selectedUnit}
+          unitType={selectedUnitType}
+          faction={selectedFactionData}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
