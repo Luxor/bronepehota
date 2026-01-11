@@ -2,7 +2,8 @@
 
 import React, { useState, KeyboardEvent } from 'react';
 import type { Faction, Squad, ArmyUnit, FactionID } from '@/lib/types';
-import { Check, X, Plus, ArrowLeft } from 'lucide-react';
+import { Check, X, Plus, ArrowLeft, Info } from 'lucide-react';
+import { UnitDetailsModal } from './UnitDetailsModal';
 
 interface UnitSelectorProps {
   factions: Faction[];
@@ -45,6 +46,10 @@ export function UnitSelector({
   loadError = null,
 }: UnitSelectorProps) {
   const [showWarning, setShowWarning] = useState(false);
+
+  // Modal state for viewing unit details
+  const [selectedSquad, setSelectedSquad] = useState<Squad | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Calculate remaining points
   const totalCost = army.reduce((sum, unit) => {
@@ -169,7 +174,11 @@ export function UnitSelector({
             return (
               <div
                 key={squad.id}
-                className="bg-slate-800 rounded-lg p-4 border border-slate-700"
+                onClick={() => {
+                  setSelectedSquad(squad);
+                  setIsModalOpen(true);
+                }}
+                className="bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-slate-600 transition-all cursor-pointer relative group"
               >
                 {/* Unit image */}
                 {squad.image && (
@@ -181,17 +190,25 @@ export function UnitSelector({
                   />
                 )}
 
+                {/* Info badge in corner */}
+                <div className="absolute top-2 right-2 bg-slate-700/80 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Info className="w-4 h-4 text-blue-400" />
+                </div>
+
                 {/* Unit name and cost */}
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex justify-between items-start mb-3 pr-6">
                   <h4 className="text-lg font-semibold text-slate-200">{squad.name}</h4>
                   <span className={`text-sm font-bold ${affordable ? 'text-green-400' : 'text-red-400'}`}>
                     {squad.cost} очков
                   </span>
                 </div>
 
-                {/* Add button */}
+                {/* Add button - stopPropagation to prevent opening modal when clicking add */}
                 <button
-                  onClick={() => handleAddUnit(squad)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddUnit(squad);
+                  }}
                   disabled={!affordable}
                   aria-disabled={!affordable}
                   aria-label={`Добавить ${squad.name}`}
@@ -267,6 +284,17 @@ export function UnitSelector({
           <p className="text-center text-sm text-slate-500 mt-2">Армия пуста</p>
         )}
       </div>
+
+      {/* Unit details modal */}
+      {selectedSquad && faction && (
+        <UnitDetailsModal
+          unit={selectedSquad}
+          unitType="squad"
+          faction={faction}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
