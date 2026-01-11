@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Army, ArmyUnit, FactionID } from '@/lib/types';
+import { Army, RulesVersionID } from '@/lib/types';
 import ArmyBuilder from '@/components/ArmyBuilder';
 import GameSession from '@/components/GameSession';
+import RulesVersionSelector from '@/components/RulesVersionSelector';
 import factionsData from '@/data/factions.json';
-import { Shield, Sword, Users, Play, Settings, Edit } from 'lucide-react';
+import { Shield, Users, Play, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { isValidRulesVersion } from '@/lib/rules-registry';
 
 export default function Home() {
   const router = useRouter();
@@ -19,6 +21,22 @@ export default function Home() {
     currentStep: 'faction-select',
     isInBattle: false,
   });
+
+  // Rules version state with localStorage persistence
+  const [rulesVersion, setRulesVersion] = useState<RulesVersionID>('tehnolog');
+
+  // Load rules version from localStorage on mount (client-side only)
+  useEffect(() => {
+    const saved = localStorage.getItem('bronepehota_rules_version');
+    if (saved && isValidRulesVersion(saved)) {
+      setRulesVersion(saved as RulesVersionID);
+    }
+  }, []);
+
+  // Persist rules version to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('bronepehota_rules_version', rulesVersion);
+  }, [rulesVersion]);
 
   const activeFaction = factionsData.find(f => f.id === army.faction);
 
@@ -74,10 +92,10 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col bg-slate-900 text-slate-100">
       {/* Header */}
-      <header className="glass-strong border-b border-slate-700/50 px-2 md:px-4 py-2 md:py-3 flex justify-between items-center sticky top-0 z-50 shadow-lg">
-        <div className="flex items-center gap-2 md:gap-3">
+      <header className="glass-strong border-b border-slate-700/50 px-2 md:px-4 py-2 md:py-3 flex items-center sticky top-0 z-50 shadow-lg gap-2 md:gap-4 overflow-x-auto">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           <div
-            className="p-2 md:p-2.5 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 active:scale-95"
+            className="p-2 md:p-2.5 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
             style={{
               backgroundColor: activeFaction?.color || '#ef4444',
               boxShadow: `0 4px 14px 0 ${(activeFaction?.color || '#ef4444')}40`
@@ -85,7 +103,7 @@ export default function Home() {
           >
             <Shield className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-sm md:text-lg md:text-xl font-bold tracking-tight leading-none bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
               <span className="hidden md:inline">БРОНЕПЕХОТА</span>
               <span className="md:hidden">БП</span>
@@ -99,7 +117,17 @@ export default function Home() {
           </div>
         </div>
 
-        <nav className="flex gap-1.5 md:gap-2">
+        {/* Rules Version Selector - show in builder mode only */}
+        {view === 'builder' && (
+          <div className="flex-shrink-0">
+            <RulesVersionSelector
+              selectedVersion={rulesVersion}
+              onVersionChange={setRulesVersion}
+            />
+          </div>
+        )}
+
+        <nav className="flex gap-1.5 md:gap-2 flex-shrink-0">
           {/* Штаб button - hidden during battle phase */}
           {!army.isInBattle && (
             <button

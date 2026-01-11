@@ -285,7 +285,7 @@ function WeaponCard({ weapon, index }: WeaponCardProps) {
       {/* Special rules */}
       {weapon.special && (
         <div className="mt-2 text-xs text-slate-400 italic">
-          {weapon.special}
+          {typeof weapon.special === 'string' ? weapon.special : JSON.stringify(weapon.special)}
         </div>
       )}
     </div>

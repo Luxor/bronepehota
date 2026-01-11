@@ -1,5 +1,8 @@
 export type FactionID = 'polaris' | 'protectorate' | 'mercenaries';
 
+// Rules version selection
+export type RulesVersionID = 'tehnolog' | 'fan';
+
 export interface Faction {
   id: FactionID;
   name: string;
@@ -37,11 +40,32 @@ export interface SpeedSector {
   speed: number;
 }
 
+// Special weapon effects (Panov rules)
+export interface AoEEffect {
+  type: 'aoe';
+  radius: number; // Количество hex-ов радиуса
+  damage: string; // Формула урона для зоны
+}
+
+export interface RepairEffect {
+  type: 'repair';
+  amount: number; // Количество восстанавливаемой прочности
+  range?: number; // Радиус действия (для ремонта соседних юнитов)
+}
+
+export interface BurstEffect {
+  type: 'burst';
+  count: number; // Количество выстрелов
+  directions: string[]; // Направления ['вперёд', 'влево-вперёд', 'вправо-вперёд']
+}
+
+export type WeaponSpecial = AoEEffect | RepairEffect | BurstEffect | string;
+
 export interface Weapon {
   name: string;
   range: string;
   power: string;
-  special?: string;
+  special?: WeaponSpecial;
 }
 
 export interface Machine {
@@ -95,4 +119,44 @@ export interface Army {
   isInBattle?: boolean;
   isLoading?: boolean;
   loadError?: string;
+}
+
+// Rules version selection
+export interface HitResult {
+  success: boolean;
+  roll: number;
+  total: number;
+}
+
+export interface DamageResult {
+  damage: number;
+  rolls: number[];
+  special?: {
+    type: 'aoe' | 'repair' | 'burst';
+    description: string;
+    additionalDamage?: number;
+    targets?: string[];
+  };
+}
+
+export interface MeleeResult {
+  attackerRoll: number;
+  attackerTotal: number;
+  defenderRoll: number;
+  defenderTotal: number;
+  winner: 'attacker' | 'defender' | 'draw';
+}
+
+export type CalculateHitFn = (rangeStr: string, distanceSteps: number) => HitResult;
+export type CalculateDamageFn = (powerStr: string, targetArmor: number, special?: WeaponSpecial) => DamageResult;
+export type CalculateMeleeFn = (attackerMelee: number, defenderMelee: number) => MeleeResult;
+
+export interface RulesVersion {
+  id: RulesVersionID;
+  name: string;
+  source: string;
+  calculateHit: CalculateHitFn;
+  calculateDamage: CalculateDamageFn;
+  calculateMelee: CalculateMeleeFn;
+  supportsSpecialEffects: boolean; // Панов поддерживает special-эффекты
 }

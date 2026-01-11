@@ -1,4 +1,5 @@
 import { parseRoll, executeRoll } from '../lib/game-logic';
+import { rulesRegistry } from '@/lib/rules-registry';
 
 describe('Game Logic - Dice Rolls', () => {
   test('parseRoll should correctly parse various formats', () => {
@@ -23,4 +24,60 @@ describe('Game Logic - Dice Rolls', () => {
   });
 });
 
+describe('Version-Specific Calculations', () => {
+  describe('Tehnolog version', () => {
+    const tehnolog = rulesRegistry.tehnolog;
 
+    test('calculateHit works correctly', () => {
+      const result = tehnolog.calculateHit('D6+2', 5);
+      expect(result).toHaveProperty('success');
+      expect(result).toHaveProperty('roll');
+      expect(result).toHaveProperty('total');
+    });
+
+    test('calculateDamage works correctly', () => {
+      const result = tehnolog.calculateDamage('2D6', 3);
+      expect(result).toHaveProperty('damage');
+      expect(result).toHaveProperty('rolls');
+      expect(result.rolls.length).toBe(2);
+    });
+
+    test('calculateMelee works correctly', () => {
+      const result = tehnolog.calculateMelee(4, 3);
+      expect(result).toHaveProperty('attackerRoll');
+      expect(result).toHaveProperty('attackerTotal');
+      expect(result).toHaveProperty('defenderRoll');
+      expect(result).toHaveProperty('defenderTotal');
+      expect(result).toHaveProperty('winner');
+      expect(['attacker', 'defender', 'draw']).toContain(result.winner);
+    });
+  });
+
+  describe('Fan Edition version', () => {
+    const fan = rulesRegistry.fan;
+
+    test('calculateHit works correctly', () => {
+      const result = fan.calculateHit('D6+2', 5);
+      expect(result).toHaveProperty('success');
+      expect(result).toHaveProperty('roll');
+      expect(result).toHaveProperty('total');
+    });
+
+    test('calculateDamage works correctly', () => {
+      const result = fan.calculateDamage('2D6', 3);
+      expect(result).toHaveProperty('damage');
+      expect(result).toHaveProperty('rolls');
+      expect(result.rolls.length).toBe(2);
+    });
+
+    test('calculateMelee works correctly', () => {
+      const result = fan.calculateMelee(4, 3);
+      expect(result).toHaveProperty('attackerRoll');
+      expect(result).toHaveProperty('attackerTotal');
+      expect(result).toHaveProperty('defenderRoll');
+      expect(result).toHaveProperty('defenderTotal');
+      expect(result).toHaveProperty('winner');
+      expect(['attacker', 'defender', 'draw']).toContain(result.winner);
+    });
+  });
+});
