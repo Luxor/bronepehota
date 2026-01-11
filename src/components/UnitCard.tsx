@@ -5,6 +5,7 @@ import { ArmyUnit, Squad, Machine, Soldier, Weapon, FactionID } from '@/lib/type
 import factionsData from '@/data/factions.json';
 import { Shield, Sword, Move, Target, Heart, Zap, RotateCcw, ExternalLink, Crosshair, Dices, X, CheckCircle2, Bomb, ChevronDown, ChevronUp, UserX } from 'lucide-react';
 import { calculateHit, calculateDamage, calculateMelee, executeRoll, rollDie } from '@/lib/game-logic';
+import { formatUnitNumber } from '@/lib/unit-utils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -596,6 +597,9 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 md:gap-2">
             {isCollapsed ? (isManualCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />) : <ChevronUp className="w-4 h-4" />}
+            {unit.instanceNumber && (
+              <span className="text-lg font-bold text-slate-400">{formatUnitNumber(unit)}</span>
+            )}
             <h3 className="font-bold text-xs md:text-sm uppercase tracking-wide truncate">{data.name}</h3>
             {isSquad && (
               <div className={cn(

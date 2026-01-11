@@ -63,6 +63,8 @@ export interface ArmyUnit {
   instanceId: string;
   type: 'squad' | 'machine';
   data: Squad | Machine;
+  // Unit numbering for identification
+  instanceNumber?: number; // Sequential number per unit type, e.g., 1, 2, 3...
   // Current state in game
   currentDurability?: number;
   currentAmmo?: number;
