@@ -1,4 +1,4 @@
-import { RulesVersion, HitResult, DamageResult, MeleeResult, WeaponSpecial, AoEEffect, RepairEffect, BurstEffect } from '../types';
+import { RulesVersion, HitResult, DamageResult, MeleeResult, WeaponSpecial, AoEEffect, RepairEffect, BurstEffect, FortificationType, FORTIFICATION_MODIFIERS, Machine, DurabilityZone } from '../types';
 import { rollDie, parseRoll, executeRoll } from '../game-logic';
 
 // Вспомогательные функции для парсинга special-эффектов
@@ -41,47 +41,109 @@ function parseBurstEffect(special: string): BurstEffect | null {
   return null;
 }
 
+/**
+ * Get durability zone for fan rules vehicle damage calculation
+ * Uses explicit zones if provided, otherwise derives from speed_sectors
+ */
+function getDurabilityZone(
+  machine: Machine | undefined,
+  currentDurability: number
+): DurabilityZone {
+  if (machine?.durabilityZones && machine.durabilityZones.length > 0) {
+    return machine.durabilityZones.find(
+      zone => currentDurability <= zone.max
+    ) || machine.durabilityZones[machine.durabilityZones.length - 1];
+  }
+
+  // Default: derive from speed_sectors (3 zones)
+  // If machine data is not available, use generic zone calculation
+  const max = machine?.durability_max || 9;
+
+  // Create default zones based on durability max
+  const zones: DurabilityZone[] = [
+    {
+      max: Math.ceil(max * 2 / 3),
+      color: 'green',
+      damagePerDie: { D6: 1, D12: 2, D20: 3 }
+    },
+    {
+      max: Math.ceil(max / 3),
+      color: 'yellow',
+      damagePerDie: { D6: 1, D12: 2, D20: 3 }
+    },
+    {
+      max: 0,
+      color: 'red',
+      damagePerDie: { D6: 1, D12: 2, D20: 3 }
+    }
+  ];
+
+  return zones.find(zone => currentDurability > zone.max) || zones[2];
+}
+
+/**
+ * Get damage per die based on die sides
+ * D6 = 1, D12 = 2, D20 = 3
+ */
+function getDamagePerDie(sides: number): number {
+  if (sides === 6) return 1;
+  if (sides === 12) return 2;
+  if (sides === 20) return 3;
+  return 1; // Default fallback
+}
+
 export const fanRules: RulesVersion = {
   id: 'fan',
   name: 'Фанатская Редакция',
-  source: 'docs/panov/rules-originnal.pdf',
+  source: 'docs/panov/fan_rules.txt',
   supportsSpecialEffects: true, // Фанатская редакция поддерживает расширенные special-эффекты
 
-  calculateHit: (rangeStr: string, distanceSteps: number): HitResult => {
+  calculateHit: (rangeStr: string, distanceSteps: number, fortification: FortificationType = 'none'): HitResult => {
+    // Apply fortification modifier to distance (fan rules)
+    const effectiveDistance = distanceSteps + FORTIFICATION_MODIFIERS[fortification].distance;
+
     const { total, rolls } = executeRoll(rangeStr);
     return {
-      success: total >= distanceSteps,
+      success: total >= effectiveDistance,
       roll: rolls[0] || 0,
       total
     };
   },
 
-  calculateDamage: (powerStr: string, targetArmor: number, special?: WeaponSpecial): DamageResult => {
+  calculateDamage: (
+    powerStr: string,
+    targetArmor: number,
+    _fortification: FortificationType = 'none',
+    special?: WeaponSpecial,
+    isVehicle?: boolean,
+    currentDurability?: number,
+    durabilityMax?: number,
+    vehicleData?: Machine
+  ): DamageResult => {
     const { dice, sides, bonus } = parseRoll(powerStr);
     let damage = 0;
     const rolls = [];
 
-    for (let i = 0; i < dice; i++) {
-      const r = rollDie(sides) + bonus;
-      rolls.push(r);
-      if (r > targetArmor) {
-        damage += 1;
-      }
-    }
-
-    // Базовый результат
-    const result: DamageResult = { damage, rolls };
-
-    // Обработка special-эффектов (Фанатская Редакция)
+    // Handle special effects first (they override normal damage calculation)
     if (special) {
+      for (let i = 0; i < dice; i++) {
+        const r = rollDie(sides) + bonus;
+        rolls.push(r);
+        if (r > targetArmor) {
+          damage += 1;
+        }
+      }
+
+      const result: DamageResult = { damage, rolls };
+
+      // Обработка special-эффектов (Фанатская Редакция)
       if (typeof special === 'string') {
-        // Парсим строковые special-эффекты
         const aoe = parseAoEEffect(special);
         if (aoe) {
           result.special = {
             type: 'aoe',
             description: `Взрыв в радиусе ${aoe.radius}ш`,
-            additionalDamage: 0 // Дополнительный урон рассчитывается отдельно для каждой цели в зоне
+            additionalDamage: 0
           };
           return result;
         }
@@ -91,7 +153,7 @@ export const fanRules: RulesVersion = {
           result.special = {
             type: 'repair',
             description: `Ремонт ${repair.amount} повреждений`,
-            additionalDamage: -repair.amount // Отрицательный урон = восстановление
+            additionalDamage: -repair.amount
           };
           return result;
         }
@@ -106,7 +168,6 @@ export const fanRules: RulesVersion = {
           return result;
         }
       } else if (special.type === 'aoe') {
-        // Структурированный AoE эффект
         result.special = {
           type: 'aoe',
           description: `Взрыв в радиусе ${special.radius}ш`,
@@ -114,7 +175,6 @@ export const fanRules: RulesVersion = {
         };
         return result;
       } else if (special.type === 'repair') {
-        // Структурированный ремонт эффект
         result.special = {
           type: 'repair',
           description: `Ремонт ${special.amount} повреждений` + (special.range ? ` (радиус ${special.range})` : ''),
@@ -122,17 +182,50 @@ export const fanRules: RulesVersion = {
         };
         return result;
       } else if (special.type === 'burst') {
-        // Структурированный burst эффект
         result.special = {
           type: 'burst',
-          description: `${special.count} выстрела в ${special.directions.length} направлениях`,
+          description: `${special.count} выстрела в ${special.count} направлениях`,
           targets: special.directions
         };
         return result;
       }
+
+      return result;
     }
 
-    return result;
+    // Vehicle attack uses zone-based damage (fan rules)
+    if (isVehicle && vehicleData && currentDurability !== undefined) {
+      const zone = getDurabilityZone(vehicleData, currentDurability);
+      const zoneMax = zone.max;
+      const damagePerDie = zone.damagePerDie;
+
+      for (let i = 0; i < dice; i++) {
+        const r = rollDie(sides) + bonus;
+        rolls.push(r);
+
+        // Check if die penetrates zone
+        if (r > zoneMax) {
+          // Add damage based on die type
+          if (sides === 6) damage += damagePerDie.D6;
+          else if (sides === 12) damage += damagePerDie.D12;
+          else if (sides === 20) damage += damagePerDie.D20;
+          else damage += 1; // Fallback for other die types
+        }
+      }
+
+      return { damage, rolls };
+    }
+
+    // Infantry attack uses standard calculation (virtual fire)
+    for (let i = 0; i < dice; i++) {
+      const r = rollDie(sides) + bonus;
+      rolls.push(r);
+      if (r > targetArmor) {
+        damage += 1;
+      }
+    }
+
+    return { damage, rolls };
   },
 
   calculateMelee: (attackerMelee: number, defenderMelee: number): MeleeResult => {

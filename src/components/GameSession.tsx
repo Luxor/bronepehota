@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Army, ArmyUnit, Squad, Machine } from '@/lib/types';
 import UnitCard from './UnitCard';
 import DiceRoller from './DiceRoller';
-import CombatAssistant from './CombatAssistant';
 import { LayoutGrid, Target, Dices, RotateCcw, Users, X, Info, ChevronLeft, ChevronRight, Maximize2, Minimize2, CheckCircle2, Bomb, Heart, UserX } from 'lucide-react';
 import { rollDie } from '@/lib/game-logic';
 import { formatUnitNumber, countByUnitType } from '@/lib/unit-utils';
@@ -26,7 +25,6 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
   const [showInitiative, setShowInitiative] = useState(false);
   const [initRoll, setInitRoll] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
-  const [showCombat, setShowCombat] = useState(false);
 
   // New state for focused view
   const [viewMode, setViewMode] = useState<'grid' | 'focused'>('focused');
@@ -173,20 +171,6 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
             <span className="hidden sm:inline">Новый Тур</span>
           </button>
 
-          {/* Combat Toggle */}
-          <button
-            onClick={() => setShowCombat(!showCombat)}
-            className={cn(
-              "flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase px-2 md:px-3 py-1.5 md:py-2 rounded-lg transition-all border shrink-0",
-              showCombat
-                ? "bg-orange-600/20 text-orange-400 border-orange-500/40"
-                : "bg-slate-800/50 text-slate-500 border-slate-700/50 hover:text-slate-300"
-            )}
-          >
-            <Target className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Атака</span>
-          </button>
-
           {/* End Battle Button - only shown when isInBattle is true */}
           {isInBattle && onEndBattle && (
             <button
@@ -213,7 +197,7 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
           <div className="flex-1 overflow-x-auto flex gap-1.5 min-w-0 overflow-y-hidden">
             {army.units.map((unit, idx) => {
               const { isDead, isDone } = getUnitStatus(unit);
-              const isActive = focusedUnitIdx === idx && viewMode === 'focused' && !showCombat;
+              const isActive = focusedUnitIdx === idx && viewMode === 'focused';
 
               // Calculate health percentage for visual bar
               let healthPercent = 100;
@@ -230,7 +214,7 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
               return (
                 <button
                   key={unit.instanceId}
-                  onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); setShowCombat(false); }}
+                  onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); }}
                   className={cn(
                     "shrink-0 w-14 h-9 rounded-lg border flex flex-row items-center justify-center gap-1 transition-all relative overflow-hidden min-w-[44px]",
                     isActive
@@ -283,53 +267,46 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-0 pb-12">
-        {showCombat ? (
-          /* Combat Assistant */
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
-            <CombatAssistant />
-          </div>
-        ) : (
-          /* Units View */
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {viewMode === 'focused' ? (
-              /* Focused Carousel View */
-              <div className="flex-1 flex items-center justify-center p-4 md:p-6 min-h-0">
-                <div className={cn(
-                  "w-full h-full overflow-y-auto custom-scrollbar rounded-2xl border border-slate-800/50 bg-slate-900/30 shadow-2xl p-2",
-                  army.units[focusedUnitIdx]?.type === 'machine' ? "max-w-6xl" : "max-w-2xl"
-                )}>
-                  {army.units.length > 0 && (
+        {/* Units View */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {viewMode === 'focused' ? (
+            /* Focused Carousel View */
+            <div className="flex-1 flex items-center justify-center p-4 md:p-6 min-h-0">
+              <div className={cn(
+                "w-full h-full overflow-y-auto custom-scrollbar rounded-2xl border border-slate-800/50 bg-slate-900/30 shadow-2xl p-2",
+                army.units[focusedUnitIdx]?.type === 'machine' ? "max-w-6xl" : "max-w-2xl"
+              )}>
+                {army.units.length > 0 && (
+                  <UnitCard
+                    unit={army.units[focusedUnitIdx]}
+                    updateUnit={updateUnit}
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Grid View */
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {army.units.map((unit, idx) => (
+                  <div
+                    key={unit.instanceId}
+                    onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); }}
+                    className={cn(
+                      "cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]",
+                      unit.type === 'machine' ? "md:col-span-2 lg:col-span-2 xl:col-span-2" : ""
+                    )}
+                  >
                     <UnitCard
-                      unit={army.units[focusedUnitIdx]}
+                      unit={unit}
                       updateUnit={updateUnit}
                     />
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
-            ) : (
-              /* Grid View */
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {army.units.map((unit, idx) => (
-                    <div
-                      key={unit.instanceId}
-                      onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); }}
-                      className={cn(
-                        "cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]",
-                        unit.type === 'machine' ? "md:col-span-2 lg:col-span-2 xl:col-span-2" : ""
-                      )}
-                    >
-                      <UnitCard
-                        unit={unit}
-                        updateUnit={updateUnit}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Status Bar - Fixed at bottom */}

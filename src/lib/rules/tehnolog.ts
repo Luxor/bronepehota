@@ -1,13 +1,13 @@
-import { RulesVersion, HitResult, DamageResult, MeleeResult, WeaponSpecial } from '../types';
+import { RulesVersion, HitResult, DamageResult, MeleeResult, WeaponSpecial, FortificationType, FORTIFICATION_MODIFIERS } from '../types';
 import { rollDie, parseRoll, executeRoll } from '../game-logic';
 
 export const tehnologRules: RulesVersion = {
   id: 'tehnolog',
   name: 'Технолог',
-  source: 'docs/original/Bronepekhota_Pravila_05_08_08.pdf',
+  source: 'docs/original/official_rules.txt',
   supportsSpecialEffects: false, // Технолог не поддерживает расширенные special-эффекты
 
-  calculateHit: (rangeStr: string, distanceSteps: number): HitResult => {
+  calculateHit: (rangeStr: string, distanceSteps: number, _fortification?: FortificationType): HitResult => {
     const { total, rolls } = executeRoll(rangeStr);
     return {
       success: total >= distanceSteps,
@@ -16,15 +16,18 @@ export const tehnologRules: RulesVersion = {
     };
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  calculateDamage: (powerStr: string, targetArmor: number, _special?: WeaponSpecial): DamageResult => {
+  calculateDamage: (powerStr: string, targetArmor: number, fortification: FortificationType = 'none', _special?: WeaponSpecial, _isVehicle?: boolean, _currentDurability?: number, _durabilityMax?: number): DamageResult => {
     const { dice, sides, bonus } = parseRoll(powerStr);
+
+    // Apply fortification modifier to armor (official rules)
+    const effectiveArmor = targetArmor + FORTIFICATION_MODIFIERS[fortification].armor;
+
     let damage = 0;
     const rolls = [];
     for (let i = 0; i < dice; i++) {
       const r = rollDie(sides) + bonus;
       rolls.push(r);
-      if (r > targetArmor) {
+      if (r > effectiveArmor) {
         damage += 1;
       }
     }

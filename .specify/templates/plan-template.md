@@ -40,10 +40,15 @@ Based on `.specify/memory/constitution.md`:
 - [ ] **Game Logic Tests**: Tests in `src/__tests__/` for mechanics in `game-logic.ts`?
 - [ ] **Dice Notation**: Correct formats (D6, D12+2, 2D12, ББ)?
 - [ ] **Faction System**: FactionID type updated? JSON data files updated?
-- [ ] **Reference Docs**: Game mechanics verified against `doc/panov/` materials?
+- [ ] **Reference Docs**: Game mechanics verified against `docs/original/official_rules.txt` (tehnolog) or `docs/panov/fan_rules.txt` (fan)?
+- [ ] **Rules Version**: localStorage key `bronepehota_rules_version` used? Both 'tehnolog' and 'fan' editions supported?
 - [ ] **Mobile-First**: Touch-friendly? Responsive layout? 44x44px min tap targets?
 - [ ] **Mobile Testing**: Core flows tested on mobile/emulation?
 - [ ] **Soldier Images**: Visible and identifiable on mobile for unit selection?
+- [ ] **Visual Design**: Follows component design standards? Faction colors as accents only?
+- [ ] **WCAG Contrast**: All text meets 4.5:1 minimum contrast ratio?
+- [ ] **Spacing & Typography**: Consistent use of Tailwind scale and Inter font hierarchy?
+- [ ] **Transitions**: 200ms standard easing applied consistently?
 
 Any violations MUST be justified in the Complexity Tracking table below.
 
