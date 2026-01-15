@@ -61,6 +61,31 @@ export interface BurstEffect {
 
 export type WeaponSpecial = AoEEffect | RepairEffect | BurstEffect | string;
 
+// Fortification types for cover mechanics (feature 003)
+export type FortificationType = 'none' | 'light' | 'heavy';
+
+export interface FortificationModifiers {
+  armor: number;     // For official rules (tehnolog) - adds to target armor
+  distance: number;  // For fan rules (panov) - adds to effective distance
+}
+
+export const FORTIFICATION_MODIFIERS: Record<FortificationType, FortificationModifiers> = {
+  none: { armor: 0, distance: 0 },
+  light: { armor: 1, distance: 1 },
+  heavy: { armor: 2, distance: 2 } // >50% cover (bunker, fortified)
+};
+
+// Durability zones for fan rules vehicle damage (feature 003)
+export interface DurabilityZone {
+  max: number;
+  color: 'green' | 'yellow' | 'red';
+  damagePerDie: {
+    D6: number;
+    D12: number;
+    D20: number;
+  };
+}
+
 export interface Weapon {
   name: string;
   range: string;
@@ -81,6 +106,7 @@ export interface Machine {
   weapons: Weapon[];
   image?: string;
   originalUrl?: string;
+  durabilityZones?: DurabilityZone[]; // Optional for fan rules vehicle damage
 }
 
 export interface ArmyUnit {
@@ -147,8 +173,8 @@ export interface MeleeResult {
   winner: 'attacker' | 'defender' | 'draw';
 }
 
-export type CalculateHitFn = (rangeStr: string, distanceSteps: number) => HitResult;
-export type CalculateDamageFn = (powerStr: string, targetArmor: number, special?: WeaponSpecial) => DamageResult;
+export type CalculateHitFn = (rangeStr: string, distanceSteps: number, fortification?: FortificationType) => HitResult;
+export type CalculateDamageFn = (powerStr: string, targetArmor: number, fortification?: FortificationType, special?: WeaponSpecial, isVehicle?: boolean, currentDurability?: number, durabilityMax?: number, vehicleData?: Machine) => DamageResult;
 export type CalculateMeleeFn = (attackerMelee: number, defenderMelee: number) => MeleeResult;
 
 export interface RulesVersion {

@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArmyUnit, Squad, Machine, Soldier, Weapon, FactionID } from '@/lib/types';
+import { ArmyUnit, Squad, Machine, Soldier, Weapon, FactionID, FortificationType, RulesVersionID } from '@/lib/types';
 import factionsData from '@/data/factions.json';
-import { Shield, Sword, Move, Target, Heart, Zap, RotateCcw, ExternalLink, Crosshair, Dices, X, CheckCircle2, Bomb, ChevronDown, ChevronUp, UserX } from 'lucide-react';
+import { Shield, Sword, Move, Target, Heart, Zap, RotateCcw, ExternalLink, Crosshair, Dices, X, CheckCircle2, Bomb, ChevronDown, ChevronUp, UserX, Info } from 'lucide-react';
 import { calculateHit, calculateDamage, calculateMelee, executeRoll, rollDie } from '@/lib/game-logic';
 import { formatUnitNumber } from '@/lib/unit-utils';
+import { getDefaultRulesVersion, rulesRegistry } from '@/lib/rules-registry';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { FortificationSelector } from './FortificationSelector';
+import { RulesInfoModal } from './RulesInfoModal';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -27,9 +30,30 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
   const [shotDistance, setShotDistance] = useState(5);
   const [targetArmor, setTargetArmor] = useState(2);
   const [targetMelee, setTargetMelee] = useState(2);
+  const [fortification, setFortification] = useState<FortificationType>('none');
   const [shotCover, setShotCover] = useState(0);
   const [shotResult, setShotResult] = useState<{ hit: any, damage: any } | null>(null);
   const [meleeResult, setMeleeResult] = useState<any | null>(null);
+  const [showRulesInfo, setShowRulesInfo] = useState(false);
+
+  // Vehicle combat state
+  const [showVehicleActionMenu, setShowVehicleActionMenu] = useState(false);
+  const [selectedVehicleWeapon, setSelectedVehicleWeapon] = useState<number | null>(null);
+  const [vehicleDistance, setVehicleDistance] = useState(5);
+  const [vehicleTargetArmor, setVehicleTargetArmor] = useState(2);
+  const [vehicleTargetMelee, setVehicleTargetMelee] = useState(2);
+  const [vehicleShotResult, setVehicleShotResult] = useState<{ hit: any, damage: any } | null>(null);
+  const [vehicleMeleeResult, setVehicleMeleeResult] = useState<any | null>(null);
+  const [vehicleCombatType, setVehicleCombatType] = useState<'shot' | 'melee'>('shot');
+
+  // Load rules version from localStorage
+  const [rulesVersion, setRulesVersion] = useState<RulesVersionID>(getDefaultRulesVersion());
+  useEffect(() => {
+    const saved = localStorage.getItem('bronepehota_rules_version');
+    if (saved) {
+      setRulesVersion(saved as RulesVersionID);
+    }
+  }, []);
 
   // Animation states for dice
   const [isRolling, setIsRolling] = useState(false);
@@ -112,14 +136,15 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
     setShotResult(null);
 
     const soldier = (data as Squad).soldiers[activeCombatSoldier];
-    
+    const rules = rulesRegistry[rulesVersion];
+
     // Hit roll animation
     for (let i = 0; i < 8; i++) {
       setDisplayRolls({ hit: rollDie(12) });
       await new Promise(r => setTimeout(r, 60));
     }
 
-    const hit = calculateHit(soldier.range, shotDistance);
+    const hit = rules.calculateHit(soldier.range, shotDistance, fortification);
     setDisplayRolls({ hit: hit.total });
     await new Promise(r => setTimeout(r, 400));
 
@@ -131,13 +156,13 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
         setDisplayRolls({ hit: hit.total, power: [rollDie(powerDice), rollDie(powerDice)] });
         await new Promise(r => setTimeout(r, 60));
       }
-      damage = calculateDamage(soldier.power, targetArmor + shotCover);
+      damage = rules.calculateDamage(soldier.power, targetArmor, fortification, undefined, false);
       setDisplayRolls({ hit: hit.total, power: damage.rolls });
     }
 
     setShotResult({ hit, damage });
     setIsRolling(false);
-    
+
     const newActions = [...(unit.actionsUsed || [])];
     newActions[activeCombatSoldier] = { ...newActions[activeCombatSoldier], shot: true };
     updateUnit({ ...unit, actionsUsed: newActions });
@@ -147,6 +172,8 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
     if (activeCombatSoldier === null || unit.grenadesUsed) return;
     setIsRolling(true);
     setShotResult(null);
+
+    const rules = rulesRegistry[rulesVersion];
 
     // Range roll animation
     for (let i = 0; i < 8; i++) {
@@ -162,14 +189,14 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
       setDisplayRolls({ hit: distanceRoll, power: [rollDie(20)] });
       await new Promise(r => setTimeout(r, 60));
     }
-    const damageResult = calculateDamage("1D20", targetArmor + shotCover);
+    const damageResult = rules.calculateDamage("1D20", targetArmor, fortification, undefined, false);
     setDisplayRolls({ hit: distanceRoll, power: damageResult.rolls });
 
-    setShotResult({ 
-      hit: { success: true, total: distanceRoll, roll: distanceRoll, isGrenade: true }, 
-      damage: damageResult 
+    setShotResult({
+      hit: { success: true, total: distanceRoll, roll: distanceRoll, isGrenade: true },
+      damage: damageResult
     });
-    
+
     setIsRolling(false);
     const newActions = [...(unit.actionsUsed || [])];
     newActions[activeCombatSoldier] = { ...newActions[activeCombatSoldier], shot: true };
@@ -181,6 +208,8 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
     setIsRolling(true);
     setMeleeResult(null);
 
+    const rules = rulesRegistry[rulesVersion];
+
     // Roll animation
     for (let i = 0; i < 10; i++) {
       setDisplayRolls({ meleeA: rollDie(6), meleeD: rollDie(6) });
@@ -188,7 +217,7 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
     }
 
     const attackerMelee = (data as Squad).soldiers[activeCombatSoldier].melee;
-    const result = calculateMelee(attackerMelee, targetMelee);
+    const result = rules.calculateMelee(attackerMelee, targetMelee);
     setDisplayRolls({ meleeA: result.attackerRoll, meleeD: result.defenderRoll });
     setMeleeResult(result);
     setIsRolling(false);
@@ -205,6 +234,98 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
     setMeleeResult(null);
     setDisplayRolls({});
     setIsRolling(false);
+  };
+
+  // Vehicle combat handlers
+  const handleVehicleShot = async () => {
+    if (selectedVehicleWeapon === null) return;
+    setIsRolling(true);
+    setVehicleShotResult(null);
+
+    const machine = data as Machine;
+    const weapon = machine.weapons[selectedVehicleWeapon];
+    const rules = rulesRegistry[rulesVersion];
+    const currentDurability = unit.currentDurability || machine.durability_max;
+
+    // Hit roll animation
+    for (let i = 0; i < 8; i++) {
+      setDisplayRolls({ hit: rollDie(12) });
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    const hit = rules.calculateHit(weapon.range, vehicleDistance, fortification);
+    setDisplayRolls({ hit: hit.total });
+    await new Promise(r => setTimeout(r, 400));
+
+    let damage = { damage: 0, rolls: [] as number[] };
+    if (hit.success) {
+      // Damage rolls animation
+      const powerDice = weapon.power.includes('D12') ? 12 : weapon.power.includes('D20') ? 20 : 6;
+      const diceCount = parseInt(weapon.power) || 1;
+      for (let i = 0; i < 8; i++) {
+        setDisplayRolls({ hit: hit.total, power: Array(diceCount).fill(0).map(() => rollDie(powerDice)) });
+        await new Promise(r => setTimeout(r, 60));
+      }
+      damage = rules.calculateDamage(
+        weapon.power,
+        vehicleTargetArmor,
+        fortification,
+        weapon.special,
+        true, // isVehicle
+        currentDurability,
+        machine.durability_max,
+        machine
+      );
+      setDisplayRolls({ hit: hit.total, power: damage.rolls });
+    }
+
+    setVehicleShotResult({ hit, damage });
+    setIsRolling(false);
+
+    // Update machine state
+    const newAmmo = Math.max(0, (unit.currentAmmo || 0) - 1);
+    const newShotsUsed = (unit.machineShotsUsed || 0) + 1;
+    const newWeaponShots = { ...(unit.machineWeaponShots || {}), [selectedVehicleWeapon]: (unit.machineWeaponShots?.[selectedVehicleWeapon] || 0) + 1 };
+    updateUnit({
+      ...unit,
+      currentAmmo: newAmmo,
+      machineShotsUsed: newShotsUsed,
+      machineWeaponShots: newWeaponShots,
+      isMachineShot: true
+    });
+  };
+
+  const handleVehicleMelee = async () => {
+    setIsRolling(true);
+    setVehicleMeleeResult(null);
+
+    const machine = data as Machine;
+    const rules = rulesRegistry[rulesVersion];
+
+    // Roll animation
+    for (let i = 0; i < 10; i++) {
+      setDisplayRolls({ meleeA: rollDie(6), meleeD: rollDie(6) });
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    // Vehicles don't have melee stat by default, use 0 or add to Machine type later
+    const attackerMelee = 0; // Can be enhanced later
+    const result = rules.calculateMelee(attackerMelee, vehicleTargetMelee);
+    setDisplayRolls({ meleeA: result.attackerRoll, meleeD: result.defenderRoll });
+    setVehicleMeleeResult(result);
+    setIsRolling(false);
+
+    updateUnit({ ...unit, isMachineMelee: true });
+  };
+
+  const closeVehicleCombat = () => {
+    setShowVehicleActionMenu(false);
+    setSelectedVehicleWeapon(null);
+    setVehicleShotResult(null);
+    setVehicleMeleeResult(null);
+    setDisplayRolls({});
+    setIsRolling(false);
+    setVehicleCombatType('shot');
   };
 
   const getSoldierImage = (idx: number) => {
@@ -366,9 +487,18 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
                   {combatType === 'shot' ? 'Выстрел' :
                    combatType === 'melee' ? 'Ближний Бой' : 'Метание гранаты'} Бойца #{activeCombatSoldier + 1}
                 </h4>
-                <button onClick={closeCombat} className="p-1 hover:bg-slate-800 rounded">
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowRulesInfo(true)}
+                    className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-blue-400"
+                    title="Справка по правилам"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+                  <button onClick={closeCombat} className="p-1 hover:bg-slate-800 rounded">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="p-4 space-y-4">
@@ -399,22 +529,14 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
                           </div>
                         </div>
 
-                        <div className="mt-4 space-y-1">
-                          <label className="text-[10px] opacity-40">Укрытие цели</label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[0, 1, 3].map(v => (
-                              <button
-                                key={v}
-                                onClick={() => setShotCover(v)}
-                                className={cn(
-                                  "py-1.5 text-[10px] rounded border transition-all font-bold",
-                                  shotCover === v ? "bg-blue-600 border-blue-400 text-white" : "bg-slate-800 border-slate-700 text-slate-500"
-                                )}
-                              >
-                                {v === 0 ? 'НЕТ' : `+${v}`}
-                              </button>
-                            ))}
-                          </div>
+                        <div className="mt-4">
+                          <label className="text-[10px] opacity-40 block mb-2">Укрепление цели</label>
+                          <FortificationSelector
+                            value={fortification}
+                            onChange={setFortification}
+                            rulesVersion={rulesVersion}
+                            className="w-full"
+                          />
                         </div>
                       </div>
 
@@ -430,55 +552,117 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
                     </>
                   ) : (
                     <div className="flex flex-col justify-center gap-4 text-center animate-in fade-in">
-                      {/* Dice Animation Display */}
-                      <div className="flex flex-col gap-4">
+                      {/* Hit Comparison Display */}
+                      <div className="grid grid-cols-2 gap-4">
                         <div className={cn(
-                          "p-4 rounded-xl border-2 transition-all",
-                          shotResult ? (shotResult.hit.success ? "bg-green-900/20 border-green-500/50" : "bg-red-900/20 border-red-500/50") : "bg-slate-800 border-blue-500/30"
+                          "bg-slate-800 p-4 rounded-xl border-2 transition-all",
+                          isRolling ? "border-blue-500/50 animate-pulse" : "border-slate-600"
                         )}>
-                          <div className="text-[10px] opacity-50 uppercase font-bold mb-1 tracking-widest">
-                            {combatType === 'grenade' ? 'Дальность броска' : 'Бросок на попадание'}
-                          </div>
-                          <div className="flex justify-center items-center gap-3">
-                            <div className={cn(
-                              "w-12 h-12 bg-slate-800 rounded-lg border-2 flex items-center justify-center text-xl font-black shadow-lg transition-transform",
-                              isRolling && !shotResult ? "animate-bounce scale-110 border-orange-500" : "border-slate-600"
-                            )}>
+                          <div className="text-[8px] opacity-50 uppercase mb-1">Ваш бросок</div>
+                          <div className="flex flex-col items-center">
+                            <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center text-2xl font-black text-blue-400 mb-1 border border-blue-500/30">
                               {displayRolls.hit || '?'}
                             </div>
                             {shotResult && (
-                              <div className={cn("text-xl font-black", shotResult.hit.success ? "text-green-400" : "text-red-400")}>
-                                {shotResult.hit.isGrenade ? 'ВЗРЫВ!' : (shotResult.hit.success ? 'ПОПАЛ' : 'ПРОМАХ')}
-                              </div>
+                              <>
+                                <div className="text-xl font-black text-blue-400">{shotResult.hit.total}</div>
+                                <div className="text-[8px] opacity-30 mt-1">
+                                  {combatType === 'grenade' ? 'D6' : (data as Squad).soldiers[activeCombatSoldier].range}
+                                </div>
+                              </>
                             )}
                           </div>
                         </div>
+                        <div className={cn(
+                          "bg-slate-800 p-4 rounded-xl border-2 transition-all",
+                          isRolling ? "border-orange-500/50 animate-pulse" : "border-slate-600"
+                        )}>
+                          <div className="text-[8px] opacity-50 uppercase mb-1">Дистанция цели</div>
+                          <div className="flex flex-col items-center">
+                            <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center text-2xl font-black text-orange-400 mb-1 border border-orange-500/30">
+                              {combatType === 'grenade' ? shotDistance : (shotDistance + (fortification !== 'none' ? (
+                                rulesVersion === 'tehnolog' ? 0 :
+                                fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0
+                              ) : 0))}
+                            </div>
+                            <div className="text-xl font-black text-orange-400">
+                              {combatType === 'grenade' ? shotDistance : (
+                                rulesVersion === 'tehnolog' ? shotDistance :
+                                shotDistance + (fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0)
+                              )}
+                            </div>
+                            <div className="text-[8px] opacity-30 mt-1">
+                              {shotDistance}{fortification !== 'none' && rulesVersion === 'fan' && (
+                                <span className="text-orange-400"> +{fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0} (укрытие)</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-                        {(displayRolls.power || (shotResult && (shotResult.hit.success || shotResult.hit.isGrenade))) && (
+                      {/* Hit Result */}
+                      {shotResult && (
+                        <div className={cn(
+                          "p-4 rounded-xl border-2 flex items-center justify-center gap-3",
+                          shotResult.hit.success ? "bg-green-900/20 border-green-500/50" : "bg-red-900/20 border-red-500/50"
+                        )}>
+                          <div className="text-[8px] opacity-50 uppercase font-bold tracking-widest">Результат</div>
+                          <div className={cn("text-2xl font-black",
+                            shotResult.hit.success ? "text-green-400" : "text-red-400"
+                          )}>
+                            {shotResult.hit.isGrenade ? 'ВЗРЫВ!' : (shotResult.hit.success ? 'ПОПАДАНИЕ' : 'ПРОМАХ')}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Damage Rolls */}
+                      {(displayRolls.power || (shotResult && (shotResult.hit.success || shotResult.hit.isGrenade))) && (
+                        <>
                           <div className={cn(
-                            "p-4 rounded-xl border-2 transition-all",
+                            "p-4 rounded-xl border-2",
                             shotResult ? (shotResult.damage.damage > 0 ? "bg-orange-900/20 border-orange-500/50" : "bg-slate-800 border-slate-600") : "bg-slate-800 border-orange-500/30"
                           )}>
-                            <div className="text-[10px] opacity-50 uppercase font-bold mb-1 tracking-widest">Бросок мощности</div>
-                            <div className="flex justify-center items-center gap-2 flex-wrap">
-                              {displayRolls.power?.map((r, i) => (
-                                <div key={i} className={cn(
-                                  "w-10 h-10 bg-slate-800 rounded-lg border-2 flex items-center justify-center text-lg font-black shadow-lg",
-                                  isRolling && shotResult ? "animate-pulse border-orange-500" : "border-slate-600",
-                                  shotResult && r > (targetArmor + shotCover) ? "text-orange-400 border-orange-400" : ""
-                                )}>
-                                  {r}
-                                </div>
-                              ))}
+                            <div className="text-[10px] opacity-50 uppercase font-bold mb-3 tracking-widest">Броски урона vs Броня</div>
+                            <div className="flex justify-center items-start gap-3 flex-wrap">
+                              {displayRolls.power?.map((r, i) => {
+                                const effectiveArmor = targetArmor + (rulesVersion === 'tehnolog' && fortification !== 'none' ? (
+                                  fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0
+                                ) : 0);
+                                const penetrated = r > effectiveArmor;
+                                return (
+                                  <div key={i} className="flex flex-col items-center gap-1">
+                                    <div className={cn(
+                                      "w-12 h-12 bg-slate-800 rounded-lg border-2 flex items-center justify-center text-xl font-black shadow-lg",
+                                      isRolling && shotResult ? "animate-pulse border-orange-500" : "border-slate-600",
+                                      penetrated ? "text-orange-400 border-orange-400" : "text-slate-500"
+                                    )}>
+                                      {r}
+                                    </div>
+                                    <div className={cn("text-[8px] font-bold", penetrated ? "text-orange-400" : "text-slate-600")}>
+                                      {penetrated ? '>' : '≤'}{effectiveArmor}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                             {shotResult && (
-                              <div className="text-xl font-black text-orange-400 mt-2">
-                                {shotResult.damage.damage > 0 ? `-${shotResult.damage.damage} HP` : 'НЕ ПРОБИТО'}
+                              <div className="mt-3 pt-3 border-t border-slate-700">
+                                <div className="text-[8px] opacity-40 mb-1">
+                                  Броня цели: {targetArmor}
+                                  {rulesVersion === 'tehnolog' && fortification !== 'none' && (
+                                    <span className="text-orange-400"> +{fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0} (укрытие)</span>
+                                  )}
+                                </div>
+                                <div className={cn("text-xl font-black",
+                                  shotResult.damage.damage > 0 ? "text-orange-400" : "text-slate-400"
+                                )}>
+                                  {shotResult.damage.damage > 0 ? `-${shotResult.damage.damage} РАНЕНИЙ` : 'НЕ ПРОБИТО'}
+                                </div>
                               </div>
                             )}
                           </div>
-                        )}
-                      </div>
+                        </>
+                      )}
 
                       {shotResult && (
                         <button onClick={closeCombat} className="w-full bg-slate-700 py-2 rounded-lg font-bold text-xs mt-4">ГОТОВО</button>
@@ -560,6 +744,345 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
                     )}
                     {meleeResult && (
                       <button onClick={closeCombat} className="w-full bg-slate-700 py-2 rounded-lg font-bold text-xs mt-4">ГОТОВО</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vehicle Action Selection Modal */}
+      {showVehicleActionMenu && selectedVehicleWeapon !== null && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center">
+            <div className="w-full max-w-xs bg-slate-900 border-2 border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+              <div className="flex justify-between items-center p-4 border-b border-slate-700">
+                <h4 className="font-bold flex items-center gap-2 uppercase tracking-wider text-xs" style={{ color: faction?.color }}>
+                  <Sword className="w-4 h-4" />
+                  Выберите действие
+                </h4>
+                <button onClick={closeVehicleCombat} className="p-1 hover:bg-slate-800 rounded">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3 space-y-2">
+                {(data as Machine).weapons[selectedVehicleWeapon] && (
+                  <div className="bg-slate-800 p-2 rounded-lg mb-2">
+                    <div className="font-bold text-sm">{(data as Machine).weapons[selectedVehicleWeapon].name}</div>
+                    <div className="text-[10px] opacity-60 font-mono">
+                      {(data as Machine).weapons[selectedVehicleWeapon].range} • {(data as Machine).weapons[selectedVehicleWeapon].power}
+                    </div>
+                  </div>
+                )}
+
+                {/* Shot */}
+                <button
+                  onClick={() => {
+                    setShowVehicleActionMenu(false);
+                    setVehicleShotResult(null);
+                  }}
+                  className="w-full p-3 bg-slate-800 hover:bg-orange-900/30 border-2 border-slate-700 rounded-xl flex items-center gap-3 transition-all group"
+                >
+                  <div className="p-2 bg-orange-600/20 rounded-lg">
+                    <Target className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="font-bold text-orange-400">Выстрел</div>
+                    <div className="text-[10px] text-slate-500">Дистанция, броня, укрепления</div>
+                  </div>
+                </button>
+
+                {/* Melee */}
+                <button
+                  onClick={() => {
+                    setShowVehicleActionMenu(false);
+                    setVehicleCombatType('melee');
+                    setVehicleMeleeResult(null);
+                  }}
+                  className="w-full p-3 bg-slate-800 hover:bg-red-900/30 border-2 border-slate-700 rounded-xl flex items-center gap-3 transition-all group"
+                >
+                  <div className="p-2 bg-red-600/20 rounded-lg">
+                    <Sword className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="font-bold text-red-400">Ближний бой</div>
+                    <div className="text-[10px] text-slate-500">Таран</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vehicle Combat Modal */}
+      {(selectedVehicleWeapon !== null || vehicleCombatType === 'melee') && !showVehicleActionMenu && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center">
+            <div className="w-full max-w-md bg-slate-900 border-2 border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+              <div className="flex justify-between items-center p-4 border-b border-slate-700">
+                <h4 className={cn("font-bold flex items-center gap-2 uppercase tracking-wider text-xs",
+                  vehicleCombatType === 'shot' ? "text-orange-500" : "text-red-500"
+                )}>
+                  {vehicleCombatType === 'shot' ? <Crosshair className="w-4 h-4" /> : <Sword className="w-4 h-4" />}
+                  {vehicleCombatType === 'shot' && selectedVehicleWeapon !== null ? 'Атака: ' + (data as Machine).weapons[selectedVehicleWeapon].name : 'Таран'}
+                </h4>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowRulesInfo(true)}
+                    className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-blue-400"
+                    title="Справка по правилам"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+                  <button onClick={closeVehicleCombat} className="p-1 hover:bg-slate-800 rounded">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* Shot Mode */}
+                {vehicleCombatType === 'shot' && (
+                  !vehicleShotResult && !isRolling ? (
+                    <>
+                      <div className="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                        <div className="text-[10px] opacity-50 uppercase font-bold mb-2">Параметры атаки</div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] opacity-40">Дистанция (шаги)</label>
+                            <input
+                              type="number"
+                              value={vehicleDistance}
+                              onChange={(e) => setVehicleDistance(parseInt(e.target.value))}
+                              className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] opacity-40">Броня цели (Бр)</label>
+                            <input
+                              type="number"
+                              value={vehicleTargetArmor}
+                              onChange={(e) => setVehicleTargetArmor(parseInt(e.target.value))}
+                              className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="text-[10px] opacity-40 block mb-2">Укрепление цели</label>
+                          <FortificationSelector
+                            value={fortification}
+                            onChange={setFortification}
+                            rulesVersion={rulesVersion}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleVehicleShot}
+                        className="w-full bg-orange-600 hover:bg-orange-500 py-3 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-all"
+                      >
+                        ОГОНЬ!
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col justify-center gap-4 text-center animate-in fade-in">
+                      {/* Hit Comparison Display */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className={cn(
+                          "bg-slate-800 p-4 rounded-xl border-2 transition-all",
+                          isRolling ? "border-blue-500/50 animate-pulse" : "border-slate-600"
+                        )}>
+                          <div className="text-[8px] opacity-50 uppercase mb-1">Ваш бросок</div>
+                          <div className="flex flex-col items-center">
+                            <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center text-2xl font-black text-blue-400 mb-1 border border-blue-500/30">
+                              {displayRolls.hit || '?'}
+                            </div>
+                            {vehicleShotResult && (
+                              <>
+                                <div className="text-xl font-black text-blue-400">{vehicleShotResult.hit.total}</div>
+                                <div className="text-[8px] opacity-30 mt-1">
+                                  {(data as Machine).weapons[selectedVehicleWeapon!].range}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "bg-slate-800 p-4 rounded-xl border-2 transition-all",
+                          isRolling ? "border-orange-500/50 animate-pulse" : "border-slate-600"
+                        )}>
+                          <div className="text-[8px] opacity-50 uppercase mb-1">Дистанция цели</div>
+                          <div className="flex flex-col items-center">
+                            <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center text-2xl font-black text-orange-400 mb-1 border border-orange-500/30">
+                              {vehicleDistance + (fortification !== 'none' && rulesVersion === 'fan' ? (
+                                fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0
+                              ) : 0)}
+                            </div>
+                            <div className="text-xl font-black text-orange-400">
+                              {vehicleDistance}
+                              {fortification !== 'none' && rulesVersion === 'fan' && (
+                                <span className="text-orange-400 text-lg">+{fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0}</span>
+                              )}
+                            </div>
+                            <div className="text-[8px] opacity-30 mt-1">
+                              {vehicleDistance}{fortification !== 'none' && rulesVersion === 'fan' && (
+                                <span className="text-orange-400"> +{fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0} (укрытие)</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Hit Result */}
+                      {vehicleShotResult && (
+                        <div className={cn(
+                          "p-4 rounded-xl border-2 flex items-center justify-center gap-3",
+                          vehicleShotResult.hit.success ? "bg-green-900/20 border-green-500/50" : "bg-red-900/20 border-red-500/50"
+                        )}>
+                          <div className="text-[8px] opacity-50 uppercase font-bold tracking-widest">Результат</div>
+                          <div className={cn("text-2xl font-black",
+                            vehicleShotResult.hit.success ? "text-green-400" : "text-red-400"
+                          )}>
+                            {vehicleShotResult.hit.success ? 'ПОПАДАНИЕ' : 'ПРОМАХ'}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Damage Rolls */}
+                      {(displayRolls.power || (vehicleShotResult && vehicleShotResult.hit.success)) && (
+                        <>
+                          <div className={cn(
+                            "p-4 rounded-xl border-2",
+                            vehicleShotResult ? (vehicleShotResult.damage.damage > 0 ? "bg-orange-900/20 border-orange-500/50" : "bg-slate-800 border-slate-600") : "bg-slate-800 border-orange-500/30"
+                          )}>
+                            <div className="text-[10px] opacity-50 uppercase font-bold mb-3 tracking-widest">Броски урона vs Броня</div>
+                            <div className="flex justify-center items-start gap-3 flex-wrap">
+                              {displayRolls.power?.map((r, i) => {
+                                const effectiveArmor = vehicleTargetArmor + (rulesVersion === 'tehnolog' && fortification !== 'none' ? (
+                                  fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0
+                                ) : 0);
+                                const penetrated = r > effectiveArmor;
+                                return (
+                                  <div key={i} className="flex flex-col items-center gap-1">
+                                    <div className={cn(
+                                      "w-12 h-12 bg-slate-800 rounded-lg border-2 flex items-center justify-center text-xl font-black shadow-lg",
+                                      isRolling && vehicleShotResult ? "animate-pulse border-orange-500" : "border-slate-600",
+                                      penetrated ? "text-orange-400 border-orange-400" : "text-slate-500"
+                                    )}>
+                                      {r}
+                                    </div>
+                                    <div className={cn("text-[8px] font-bold", penetrated ? "text-orange-400" : "text-slate-600")}>
+                                      {penetrated ? '>' : '≤'}{effectiveArmor}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {vehicleShotResult && (
+                              <div className="mt-3 pt-3 border-t border-slate-700">
+                                <div className="text-[8px] opacity-40 mb-1">
+                                  Броня цели: {vehicleTargetArmor}
+                                  {rulesVersion === 'tehnolog' && fortification !== 'none' && (
+                                    <span className="text-orange-400"> +{fortification === 'light' ? 1 : fortification === 'heavy' ? 2 : 0} (укрытие)</span>
+                                  )}
+                                </div>
+                                <div className={cn("text-xl font-black",
+                                  vehicleShotResult.damage.damage > 0 ? "text-orange-400" : "text-slate-400"
+                                )}>
+                                  {vehicleShotResult.damage.damage > 0 ? `-${vehicleShotResult.damage.damage} HP` : 'НЕ ПРОБИТО'}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {vehicleShotResult && (
+                        <button onClick={closeVehicleCombat} className="w-full bg-slate-700 py-2 rounded-lg font-bold text-xs mt-4">ГОТОВО</button>
+                      )}
+                    </div>
+                  )
+                )}
+
+                {/* Melee Mode */}
+                {vehicleCombatType === 'melee' && !vehicleMeleeResult && !isRolling && (
+                  <>
+                    <div className="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                      <div className="text-[10px] opacity-50 uppercase font-bold mb-2">Параметры тарана</div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] opacity-40">Ближний бой цели (ББ)</label>
+                        <input
+                          type="number"
+                          value={vehicleTargetMelee}
+                          onChange={(e) => setVehicleTargetMelee(parseInt(e.target.value))}
+                          className="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleVehicleMelee}
+                      className="w-full bg-red-600 hover:bg-red-500 py-3 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-all"
+                    >
+                      ТАРАН!
+                    </button>
+                  </>
+                )}
+
+                {vehicleMeleeResult && (
+                  <div className="flex-1 flex flex-col justify-center gap-4 text-center animate-in fade-in">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className={cn(
+                        "bg-slate-800 p-4 rounded-xl border-2 transition-all",
+                        isRolling ? "border-blue-500/50 animate-pulse" : "border-slate-600"
+                      )}>
+                        <div className="text-[8px] opacity-50 uppercase mb-1">Вы</div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center text-2xl font-black text-blue-400 mb-1 border border-blue-500/30">
+                            {displayRolls.meleeA || '?'}
+                          </div>
+                          {vehicleMeleeResult && <div className="text-xl font-black text-blue-400">{vehicleMeleeResult.attackerTotal}</div>}
+                          <div className="text-[8px] opacity-30 mt-1">D6 + ББ(0)</div>
+                        </div>
+                      </div>
+                      <div className={cn(
+                        "bg-slate-800 p-4 rounded-xl border-2 transition-all",
+                        isRolling ? "border-red-500/50 animate-pulse" : "border-slate-600"
+                      )}>
+                        <div className="text-[8px] opacity-50 uppercase mb-1">Цель</div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center text-2xl font-black text-red-400 mb-1 border border-red-500/30">
+                            {displayRolls.meleeD || '?'}
+                          </div>
+                          {vehicleMeleeResult && <div className="text-xl font-black text-red-400">{vehicleMeleeResult.defenderTotal}</div>}
+                          <div className="text-[8px] opacity-30 mt-1">D6 + ББ({vehicleTargetMelee})</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {vehicleMeleeResult && (
+                      <div className={cn(
+                        "p-6 rounded-2xl border-2 flex flex-col items-center",
+                        vehicleMeleeResult.winner === 'attacker' ? "bg-green-900/20 border-green-500/50" :
+                        vehicleMeleeResult.winner === 'defender' ? "bg-red-900/20 border-red-500/50" : "bg-slate-800 border-slate-700"
+                      )}>
+                        <div className="text-xs opacity-50 uppercase font-bold mb-1 tracking-widest">Итог</div>
+                        <div className={cn("text-3xl font-black",
+                          vehicleMeleeResult.winner === 'attacker' ? "text-green-400" :
+                          vehicleMeleeResult.winner === 'defender' ? "text-red-400" : "text-slate-400"
+                        )}>
+                          {vehicleMeleeResult.winner === 'attacker' ? 'ПОБЕДА' :
+                           vehicleMeleeResult.winner === 'defender' ? 'КОНТРАТАКА' : 'НИЧЬЯ'}
+                        </div>
+                      </div>
+                    )}
+                    {vehicleMeleeResult && (
+                      <button onClick={closeVehicleCombat} className="w-full bg-slate-700 py-2 rounded-lg font-bold text-xs mt-4">ГОТОВО</button>
                     )}
                   </div>
                 )}
@@ -780,12 +1303,17 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
                   </button>
                   <button
                     disabled={isMachineDone || isMachineDestroyed}
-                    onClick={() => updateUnit({ ...unit, isMachineMelee: !unit.isMachineMelee })}
+                    onClick={() => {
+                      setSelectedVehicleWeapon(null);
+                      setVehicleCombatType('melee');
+                      setShowVehicleActionMenu(false);
+                      setVehicleMeleeResult(null);
+                    }}
                     className={cn(
                       "p-1.5 md:p-2 rounded transition-colors min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center",
                       unit.isMachineMelee ? "bg-red-600 text-white shadow-lg shadow-red-900/50" : "bg-slate-800 text-slate-500 border border-slate-700"
                     )}
-                    title="Ближний бой"
+                    title="Таран (ближний бой)"
                   >
                     <Sword className="w-4 h-4 md:w-5 md:h-5" />
                   </button>
@@ -930,34 +1458,28 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
                         </div>
                         <button
                           onClick={() => {
-                            if (canShoot && (unit.currentAmmo || 0) > 0) {
-                              const newAmmo = Math.max(0, (unit.currentAmmo || 0) - 1);
-                              const newShotsUsed = (unit.machineShotsUsed || 0) + 1;
-                              const newWeaponShots = { ...(unit.machineWeaponShots || {}), [weaponIdx]: weaponShots + 1 };
-                              updateUnit({ 
-                                ...unit, 
-                                currentAmmo: newAmmo,
-                                machineShotsUsed: newShotsUsed,
-                                machineWeaponShots: newWeaponShots,
-                                isMachineShot: true
-                              });
+                            if (canShoot) {
+                              setSelectedVehicleWeapon(weaponIdx);
+                              setVehicleCombatType('shot');
+                              setShowVehicleActionMenu(true);
+                              setVehicleShotResult(null);
                             }
                           }}
                           disabled={!canShoot}
                           className={cn(
                             "px-2 md:px-3 py-1.5 md:py-1.5 rounded text-[9px] md:text-[10px] font-bold uppercase transition-all flex items-center gap-1 w-full sm:w-auto min-h-[44px] sm:min-h-0 justify-center",
-                            canShoot 
-                              ? "bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/50 active:scale-95" 
+                            canShoot
+                              ? "bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-900/50 active:scale-95"
                               : "bg-slate-800 text-slate-600 border border-slate-700 cursor-not-allowed opacity-50"
                           )}
-                          title={!canShoot ? 
-                            (totalShotsUsed >= fireRate ? `Достигнут лимит выстрелов (${fireRate})` : 
-                             (unit.currentAmmo || 0) === 0 ? "Нет боезапаса" : 
-                             isMachineDone ? "Ход завершен" : "Техника уничтожена") 
-                            : `Выстрел (тратит 1 боезапас, осталось ${fireRate - totalShotsUsed} выстрелов)`}
+                          title={!canShoot ?
+                            (totalShotsUsed >= fireRate ? `Достигнут лимит выстрелов (${fireRate})` :
+                             (unit.currentAmmo || 0) === 0 ? "Нет боезапаса" :
+                             isMachineDone ? "Ход завершен" : "Техника уничтожена")
+                            : `Атака с оружием: ${w.name}`}
                         >
                           <Target className="w-3 h-3" />
-                          <span className="hidden sm:inline">Выстрел</span>
+                          <span className="hidden sm:inline">Атака</span>
                         </button>
                       </div>
                     );
@@ -1022,6 +1544,13 @@ export default function UnitCard({ unit, updateUnit }: UnitCardProps) {
           <div className="text-[10px] opacity-40 italic">Нажмите, чтобы развернуть...</div>
         </div>
       )}
+
+      {/* Rules Info Modal */}
+      <RulesInfoModal
+        isOpen={showRulesInfo}
+        onClose={() => setShowRulesInfo(false)}
+        rulesVersion={rulesVersion}
+      />
     </div>
   );
 }

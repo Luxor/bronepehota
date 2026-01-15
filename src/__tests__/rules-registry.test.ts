@@ -69,33 +69,33 @@ describe('Special Effects (Fan Edition Rules)', () => {
   });
 
   test('Fan parses AoE effect from string', () => {
-    const result = fan.calculateDamage('4D20', 3, 'Взрыв 2ш - 1D20');
+    const result = fan.calculateDamage('4D20', 3, 'none', 'Взрыв 2ш - 1D20');
     expect(result.special).toBeDefined();
     expect(result.special?.type).toBe('aoe');
     expect(result.special?.description).toContain('2ш');
   });
 
   test('Fan parses Repair effect from string', () => {
-    const result = fan.calculateDamage('1D20', 3, 'Ремонт 2 повреждения');
+    const result = fan.calculateDamage('1D20', 3, 'none', 'Ремонт 2 повреждения');
     expect(result.special).toBeDefined();
     expect(result.special?.type).toBe('repair');
     expect(result.special?.additionalDamage).toBe(-2);
   });
 
   test('Fan parses Burst effect from string', () => {
-    const result = fan.calculateDamage('1D6', 3, '3 выстрела в 3х направлениях');
+    const result = fan.calculateDamage('1D6', 3, 'none', '3 выстрела в 3х направлениях');
     expect(result.special).toBeDefined();
     expect(result.special?.type).toBe('burst');
     expect(result.special?.targets).toHaveLength(3);
   });
 
   test('Tehnolog ignores special effects', () => {
-    const result = tehnolog.calculateDamage('4D20', 3, 'Взрыв 2ш - 1D20');
+    const result = tehnolog.calculateDamage('4D20', 3, 'none', 'Взрыв 2ш - 1D20');
     expect(result.special).toBeUndefined();
   });
 
   test('Fan calculates normal damage without special effects', () => {
-    const result = fan.calculateDamage('2D12', 5);
+    const result = fan.calculateDamage('2D12', 5, 'none');
     expect(result.damage).toBeGreaterThanOrEqual(0);
     expect(result.rolls).toHaveLength(2);
     expect(result.special).toBeUndefined();
