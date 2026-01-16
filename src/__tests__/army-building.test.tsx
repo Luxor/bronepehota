@@ -248,11 +248,15 @@ describe('UnitSelector', () => {
       />
     );
 
-    // Try to add 50-point unit when budget is 30
-    fireEvent.click(screen.getAllByText('Добавить')[0]);
+    // Find the add button for Легкий штурм (costs 50, budget is 30)
+    const addButton = screen.getAllByText('Добавить').find(
+      btn => btn.getAttribute('aria-label') === 'Добавить Легкий штурм'
+    );
 
-    // Warning should appear
-    expect(screen.getByText('Недостаточно очков')).toBeInTheDocument();
+    // Button should be disabled when unit cannot be afforded
+    expect(addButton).toBeDisabled();
+    expect(addButton).toHaveAttribute('aria-disabled', 'true');
+
     // Unit should not be added
     expect(mockAdd).not.toHaveBeenCalled();
   });

@@ -96,6 +96,13 @@ export const fanRules: RulesVersion = {
   id: 'fan',
   name: 'Фанатская Редакция',
   source: 'docs/panov/fan_rules.txt',
+  description: 'Альтернативные правила от Панова с расширенными механиками. Используют зонную систему повреждений для техники и поддерживают спецэффекты оружия. Более сложные, но тактически глубокие правила для опытных игроков.',
+  features: [
+    'Зонные повреждения техники: зелёный/жёлтый/красный сектор',
+    'Спецэффекты: Взрыв, Ремонт, Burst',
+    'Укрытия увеличивают дистанцию'
+  ],
+  color: '#3b82f6',
   supportsSpecialEffects: true, // Фанатская редакция поддерживает расширенные special-эффекты
 
   calculateHit: (rangeStr: string, distanceSteps: number, fortification: FortificationType = 'none'): HitResult => {

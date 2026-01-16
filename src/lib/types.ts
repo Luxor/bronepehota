@@ -181,6 +181,9 @@ export interface RulesVersion {
   id: RulesVersionID;
   name: string;
   source: string;
+  description?: string;      // 2-3 sentence explanation in Russian
+  features?: string[];       // Array of key differences/abilities in Russian
+  color?: string;            // Hex color code for visual theme (e.g., "#ef4444")
   calculateHit: CalculateHitFn;
   calculateDamage: CalculateDamageFn;
   calculateMelee: CalculateMeleeFn;

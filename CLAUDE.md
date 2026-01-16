@@ -125,6 +125,8 @@ Jest with jsdom environment. Tests focus on game logic utilities (`game-logic.ts
 - TypeScript 5.x (via Next.js 14.2.35, React 18) + React 18, Next.js 14, Tailwind CSS, Lucide React, clsx, tailwind-merge (002-rules-version-selection)
 - localStorage for rules version persistence (key: `bronepehota_rules_version`), JSON files for game data in `src/data/` (002-rules-version-selection)
 - JSON files in `src/data/` (factions.json, squads.json, machines.json) + localStorage for rules version (`bronepehota_rules_version`) (003-official-rules)
+- TypeScript 5.x (via Next.js 14.2.35), React 18 + Next.js 14, React 18, Tailwind CSS, Lucide React (001-rules-selector)
+- localStorage (`bronepehota_rules_version`), JSON files in `src/data/` (extended RulesVersion in code) (001-rules-selector)
 
 ## Recent Changes
 - 001-army-building-flow: Added TypeScript 5.x (via Next.js 14) + React 18, Next.js 14, Tailwind CSS, Lucide React
