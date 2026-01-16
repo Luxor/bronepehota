@@ -93,7 +93,9 @@ export function PointBudgetInput({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-semibold text-slate-200">Очки армии</h3>
+      <h3 className="text-2xl font-bold text-slate-200">Очки армии</h3>
+      <p className="text-sm text-slate-400 -mt-3">Выберите лимит очков для вашей армии</p>
+      <p className="text-xs text-slate-500 -mt-2">Чем больше очков, тем больше юнитов вы можете добавить</p>
 
       {/* Preset buttons */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -106,7 +108,7 @@ export function PointBudgetInput({
             onClick={() => handlePresetClick(preset)}
             disabled={disabled}
             className={`
-              px-4 py-3 rounded-lg font-semibold transition-all min-h-[48px] min-w-[44px] touch-manipulation
+              relative px-4 py-3 rounded-lg font-semibold transition-all min-h-[48px] min-w-[44px] touch-manipulation
               ${disabled
                 ? 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50'
                 : isPresetSelected(preset)
@@ -115,6 +117,11 @@ export function PointBudgetInput({
               }
             `}
           >
+            {preset === 350 && !value && !customValue && (
+              <div className="absolute -top-1 -right-1 bg-yellow-500/20 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded">
+                ⭐ Рекомендовано
+              </div>
+            )}
             {preset}
           </button>
         ))}
@@ -159,7 +166,7 @@ export function PointBudgetInput({
             aria-disabled={!value || !!error}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors min-h-[48px] min-w-[44px]"
           >
-            Далее
+            Начать сбор армии
           </button>
         </div>
       )}

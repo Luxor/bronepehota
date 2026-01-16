@@ -2,7 +2,7 @@
 
 import React, { useState, KeyboardEvent, useMemo } from 'react';
 import type { Faction, Squad, ArmyUnit, FactionID } from '@/lib/types';
-import { Check, X, Plus, ArrowLeft, Info } from 'lucide-react';
+import { Check, X, Plus, ArrowLeft, Info, RotateCcw } from 'lucide-react';
 import { UnitDetailsModal } from './UnitDetailsModal';
 import { countByUnitType } from '@/lib/unit-utils';
 
@@ -16,6 +16,7 @@ interface UnitSelectorProps {
   onRemoveUnit: (instanceId: string) => void;
   onToBattle: () => void;
   onBackToFactionSelect?: () => void;
+  onResetFully?: () => void; // New prop for complete reset
   isLoading?: boolean;
   loadError?: string | null;
 }
@@ -43,6 +44,7 @@ export function UnitSelector({
   onRemoveUnit,
   onToBattle,
   onBackToFactionSelect,
+  onResetFully,
   isLoading = false,
   loadError = null,
 }: UnitSelectorProps) {
@@ -138,16 +140,29 @@ export function UnitSelector({
   return (
     <div className="space-y-6">
       {/* Back to faction select button */}
-      {onBackToFactionSelect && (
-        <button
-          onClick={onBackToFactionSelect}
-          className="w-full sm:w-auto px-3 sm:px-4 py-3 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 min-h-[48px] touch-manipulation"
-        >
-          <ArrowLeft size={18} className="flex-shrink-0" />
-          <span className="hidden sm:inline">Вернуться к выбору фракции</span>
-          <span className="sm:hidden">Назад к фракции</span>
-        </button>
-      )}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {onBackToFactionSelect && (
+          <button
+            onClick={onBackToFactionSelect}
+            className="flex-1 sm:flex-none px-3 sm:px-4 py-3 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 min-h-[48px] touch-manipulation"
+          >
+            <ArrowLeft size={18} className="flex-shrink-0" />
+            <span className="hidden sm:inline">Вернуться к выбору фракции</span>
+            <span className="sm:hidden">Назад к фракции</span>
+          </button>
+        )}
+        {onResetFully && (
+          <button
+            onClick={onResetFully}
+            className="flex-1 sm:flex-none px-3 sm:px-4 py-3 bg-red-900/50 hover:bg-red-800/70 active:bg-red-800/50 text-red-200 hover:text-red-100 rounded-lg font-medium transition-all flex items-center justify-center gap-2 min-h-[48px] touch-manipulation"
+            title="Начать игру заново с выбора фракции"
+          >
+            <RotateCcw size={18} className="flex-shrink-0" />
+            <span className="hidden sm:inline">Начать заново</span>
+            <span className="sm:hidden">Заново</span>
+          </button>
+        )}
+      </div>
 
       {/* Budget display */}
       <div

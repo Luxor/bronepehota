@@ -87,7 +87,8 @@ export function FactionSelector({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-200">Выберите фракцию</h2>
+      <h2 className="text-3xl font-bold text-slate-200">Выберите фракцию</h2>
+      <p className="text-sm text-slate-400 -mt-4">Выберите одну из трех фракций для вашей армии</p>
 
       {/* Faction cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -120,6 +121,12 @@ export function FactionSelector({
                 backgroundColor: isSelected ? `${faction.color}10` : undefined,
               }}
             >
+              {/* Recommended badge */}
+              {!selectedFaction && faction.id === 'polaris' && (
+                <div className="absolute -top-2 -right-2 bg-yellow-500 text-slate-900 text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">
+                  Рекомендовано
+                </div>
+              )}
               {/* Faction name and color indicator */}
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-semibold text-slate-200 truncate">
@@ -161,7 +168,7 @@ export function FactionSelector({
             aria-disabled={!selectedFaction}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors min-h-[48px] min-w-[44px]"
           >
-            Далее
+            Продолжить
           </button>
         </div>
       )}

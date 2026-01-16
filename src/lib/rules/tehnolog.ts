@@ -5,6 +5,13 @@ export const tehnologRules: RulesVersion = {
   id: 'tehnolog',
   name: 'Технолог',
   source: 'docs/original/official_rules.txt',
+  description: 'Официальные правила игры от Технолог. Используют прямое сравнение для попадания и "виртуальную стрельбу" для урона — каждый кубик больше брони наносит 1 ранение. Простейшие и наиболее понятные правила для начинающих.',
+  features: [
+    'Виртуальная стрельба: кубик > брони = 1 ранение',
+    'Укрытия добавляются к броне цели',
+    'Простые расчёты без спецэффектов'
+  ],
+  color: '#ef4444',
   supportsSpecialEffects: false, // Технолог не поддерживает расширенные special-эффекты
 
   calculateHit: (rangeStr: string, distanceSteps: number, _fortification?: FortificationType): HitResult => {

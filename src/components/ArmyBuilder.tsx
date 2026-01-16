@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Army, ArmyUnit, FactionID, Faction, Squad, Machine } from '@/lib/types';
+import { Army, ArmyUnit, FactionID, Faction, Squad, Machine, RulesVersionID } from '@/lib/types';
 import { countByUnitType, validateAddUnit } from '@/lib/unit-utils';
 import squadsData from '@/data/squads.json';
 import machinesData from '@/data/machines.json';
 import factionsData from '@/data/factions.json';
-import { Plus, Trash2, Shield, Sword, Cpu, Box, Search, Download, Upload, Info, Globe, Quote, Users, Zap, Skull, LucideIcon } from 'lucide-react';
+import { Plus, Trash2, Shield, Sword, Cpu, Box, Search, Download, Upload, Info, Globe, Quote, Users, Zap, Skull, ArrowLeft, LucideIcon } from 'lucide-react';
 import { FactionSelector } from './FactionSelector';
 import { PointBudgetInput } from './PointBudgetInput';
 import { UnitSelector } from './UnitSelector';
 import { UnitDetailsModal } from './UnitDetailsModal';
+import { RulesSelector } from './RulesSelector';
+import { StepProgressIndicator } from './StepProgressIndicator';
+import { getAllRulesVersions } from '@/lib/rules-registry';
 
 // Type assertions for JSON imports
 const typedFactions = factionsData as Faction[];
@@ -21,6 +24,8 @@ interface ArmyBuilderProps {
   army: Army;
   setArmy: (army: Army) => void;
   onEnterBattle?: () => void;
+  rulesVersion: RulesVersionID;
+  onRulesVersionChange: (version: RulesVersionID) => void;
 }
 
 const factionIcons: Record<string, LucideIcon> = {
@@ -29,9 +34,12 @@ const factionIcons: Record<string, LucideIcon> = {
   Skull
 };
 
-export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilderProps) {
+export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion, onRulesVersionChange }: ArmyBuilderProps) {
   const [filterFaction, setFilterFaction] = useState<FactionID | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Setup step state for guided flow
+  const [setupStep, setSetupStep] = useState<'faction' | 'budget' | 'rules'>('faction');
 
   // Modal state management (selectedUnit, isModalOpen)
   const [selectedUnit, setSelectedUnit] = useState<Squad | Machine | null>(null);
@@ -142,24 +150,68 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
     return (
       <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
         {army.currentStep === 'faction-select' && (
-          <div className="space-y-8">
-            <FactionSelector
-              factions={typedFactions}
+          <>
+            <StepProgressIndicator
+              currentStep={setupStep}
               selectedFaction={army.faction}
-              onFactionSelect={(factionId) => setArmy({ ...army, faction: factionId })}
+              selectedBudget={army.pointBudget}
+              selectedRules={rulesVersion}
             />
-            {army.faction && (
-              <PointBudgetInput
-                presets={[250, 350, 500, 1000]}
-                value={army.pointBudget}
-                onChange={(budget) => setArmy({
-                  ...army,
-                  pointBudget: budget,
-                  currentStep: 'unit-select',
-                })}
+
+            {/* Step 1: Faction Selection */}
+            {setupStep === 'faction' && (
+              <FactionSelector
+                factions={typedFactions}
+                selectedFaction={army.faction}
+                onFactionSelect={(factionId) => setArmy({ ...army, faction: factionId })}
+                onNext={() => setSetupStep('budget')}
+                nextDisabled={!army.faction}
               />
             )}
-          </div>
+
+            {/* Step 2: Budget Selection */}
+            {setupStep === 'budget' && army.faction && (
+              <div className="relative">
+                <button
+                  onClick={() => setSetupStep('faction')}
+                  className="absolute -top-4 left-0 flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Назад
+                </button>
+                <div className="pt-6">
+                  <PointBudgetInput
+                    presets={[250, 350, 500, 1000]}
+                    value={army.pointBudget}
+                    onChange={(budget) => setArmy({ ...army, pointBudget: budget })}
+                    onNext={() => setSetupStep('rules')}
+                    disabled={false}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Rules Confirmation */}
+            {setupStep === 'rules' && (
+              <div className="relative">
+                <button
+                  onClick={() => setSetupStep('budget')}
+                  className="absolute -top-4 left-0 flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Назад
+                </button>
+                <div className="pt-6">
+                  <RulesSelector
+                    versions={getAllRulesVersions()}
+                    selectedVersion={rulesVersion}
+                    onVersionChange={onRulesVersionChange}
+                    onConfirm={() => setArmy({ ...army, currentStep: 'unit-select' })}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {army.currentStep === 'unit-select' && army.pointBudget && (
@@ -218,6 +270,19 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle }: ArmyBuilde
                 totalCost: 0,
                 pointBudget: undefined,
                 currentStep: 'faction-select',
+              });
+            }}
+            onResetFully={() => {
+              // Complete reset - also reset setup step
+              setSetupStep('faction');
+              setArmy({
+                name: 'Моя Армия',
+                faction: 'polaris',
+                units: [],
+                totalCost: 0,
+                pointBudget: undefined,
+                currentStep: 'faction-select',
+                isInBattle: false,
               });
             }}
           />
