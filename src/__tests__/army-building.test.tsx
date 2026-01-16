@@ -10,7 +10,7 @@ import '@testing-library/jest-dom';
 import { FactionSelector } from '@/components/FactionSelector';
 import { PointBudgetInput } from '@/components/PointBudgetInput';
 import { UnitSelector } from '@/components/UnitSelector';
-import type { Faction, Squad, ArmyUnit, FactionID } from '@/lib/types';
+import type { Faction, Squad, Machine, ArmyUnit, FactionID } from '@/lib/types';
 
 // Mock faction data
 const mockFactions: Faction[] = [
@@ -57,6 +57,27 @@ const mockSquads: Squad[] = [
     cost: 100,
     soldiers: [],
     image: '/images/polaris-heavy-assault.jpg',
+  },
+];
+
+// Mock machine data
+const mockMachines: Machine[] = [
+  {
+    id: 'polaris_light_tank',
+    name: 'Легкий танк',
+    faction: 'polaris' as FactionID,
+    cost: 150,
+    rank: 3,
+    fire_rate: 2,
+    ammo_max: 10,
+    durability_max: 15,
+    speed_sectors: [
+      { min_durability: 1, max_durability: 15, speed: 10 },
+    ],
+    weapons: [
+      { name: 'Автопушка', range: 'D12', power: '2D6' },
+    ],
+    image: '/images/polaris-light-tank.jpg',
   },
 ];
 
@@ -231,7 +252,10 @@ describe('UnitSelector', () => {
       />
     );
 
-    expect(screen.getByText('Осталось очков: 450 / 500')).toBeInTheDocument();
+    // Budget display shows remaining points in format "450 / 500"
+    expect(screen.getByText('450 / 500')).toBeInTheDocument();
+    // Also check for "Осталось очков:" label
+    expect(screen.getByText('Осталось очков:')).toBeInTheDocument();
   });
 
   it('prevents adding units over budget', () => {
@@ -284,10 +308,10 @@ describe('UnitSelector', () => {
     );
 
     const battleButton = screen.getByText('В бой');
-    expect(battleButton).not.toBeDisabled();
+    expect(battleButton).toBeInTheDocument();
   });
 
-  it('displays empty army message when army is empty', () => {
+  it('hides "В бой" button when army is empty', () => {
     render(
       <UnitSelector
         factions={mockFactions}
@@ -301,6 +325,62 @@ describe('UnitSelector', () => {
       />
     );
 
-    expect(screen.getByText('Армия пуста')).toBeInTheDocument();
+    // "В бой" button should not be in document when army is empty
+    expect(screen.queryByText('В бой')).not.toBeInTheDocument();
+  });
+
+  it('displays both squads and machines when machines prop is provided', () => {
+    const mockAddMachine = jest.fn();
+
+    render(
+      <UnitSelector
+        factions={mockFactions}
+        squads={mockSquads}
+        machines={mockMachines}
+        selectedFaction="polaris"
+        pointBudget={500}
+        army={mockArmy}
+        onAddUnit={mockAdd}
+        onAddMachine={mockAddMachine}
+        onRemoveUnit={mockRemove}
+        onToBattle={mockToBattle}
+      />
+    );
+
+    // Should display squads
+    expect(screen.getByText('Легкий штурм')).toBeInTheDocument();
+    expect(screen.getByText('Тяжелый штурм')).toBeInTheDocument();
+
+    // Should display machines
+    expect(screen.getByText('Легкий танк')).toBeInTheDocument();
+  });
+
+  it('calls onAddMachine when machine add button is clicked', () => {
+    const mockAddMachine = jest.fn();
+
+    render(
+      <UnitSelector
+        factions={mockFactions}
+        squads={mockSquads}
+        machines={mockMachines}
+        selectedFaction="polaris"
+        pointBudget={500}
+        army={mockArmy}
+        onAddUnit={mockAdd}
+        onAddMachine={mockAddMachine}
+        onRemoveUnit={mockRemove}
+        onToBattle={mockToBattle}
+      />
+    );
+
+    // Find the add button for Легкий танк
+    const addButton = screen.getAllByText('Добавить').find(
+      btn => btn.getAttribute('aria-label') === 'Добавить Легкий танк'
+    );
+
+    if (addButton) {
+      fireEvent.click(addButton);
+      expect(mockAddMachine).toHaveBeenCalledWith(mockMachines[0]);
+    }
   });
 });

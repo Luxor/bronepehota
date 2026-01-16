@@ -1,25 +1,32 @@
 'use client';
 
-import React, { useState, KeyboardEvent, useMemo } from 'react';
-import type { Faction, Squad, ArmyUnit, FactionID } from '@/lib/types';
-import { Check, X, Plus, ArrowLeft, Info, RotateCcw } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import type { Faction, Squad, Machine, ArmyUnit, FactionID } from '@/lib/types';
+import { Check, X, Plus, ArrowLeft, Info, RotateCcw, Users, Zap } from 'lucide-react';
 import { UnitDetailsModal } from './UnitDetailsModal';
 import { countByUnitType } from '@/lib/unit-utils';
 
 interface UnitSelectorProps {
   factions: Faction[];
   squads: Squad[];
+  machines?: Machine[];
   selectedFaction: FactionID;
   pointBudget: number;
   army: ArmyUnit[];
   onAddUnit: (squad: Squad) => void;
+  onAddMachine?: (machine: Machine) => void;
   onRemoveUnit: (instanceId: string) => void;
   onToBattle: () => void;
   onBackToFactionSelect?: () => void;
-  onResetFully?: () => void; // New prop for complete reset
+  onResetFully?: () => void;
   isLoading?: boolean;
   loadError?: string | null;
 }
+
+type UnitDisplay = {
+  type: 'squad' | 'machine';
+  data: Squad | Machine;
+};
 
 /**
  * UnitSelector - Display available units with budget-aware controls
@@ -37,10 +44,12 @@ interface UnitSelectorProps {
 export function UnitSelector({
   factions,
   squads,
+  machines = [],
   selectedFaction,
   pointBudget,
   army,
   onAddUnit,
+  onAddMachine,
   onRemoveUnit,
   onToBattle,
   onBackToFactionSelect,
@@ -49,6 +58,7 @@ export function UnitSelector({
   loadError = null,
 }: UnitSelectorProps) {
   const [showWarning, setShowWarning] = useState(false);
+  const [expandedUnitId, setExpandedUnitId] = useState<string | null>(null);
 
   // Count units by type for badges
   const unitCounts = useMemo(() => {
@@ -56,18 +66,24 @@ export function UnitSelector({
   }, [army]);
 
   // Modal state for viewing unit details
-  const [selectedSquad, setSelectedSquad] = useState<Squad | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<UnitDisplay | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Calculate remaining points
   const totalCost = army.reduce((sum, unit) => {
-    const squad = unit.data as Squad;
-    return sum + squad.cost;
+    return sum + unit.data.cost;
   }, 0);
   const remainingPoints = pointBudget - totalCost;
 
-  // Filter squads by selected faction
+  // Filter units by selected faction
   const availableSquads = squads.filter(s => s.faction === selectedFaction);
+  const availableMachines = machines.filter(m => m.faction === selectedFaction);
+
+  // Combine all available units
+  const availableUnits: UnitDisplay[] = [
+    ...availableSquads.map(s => ({ type: 'squad' as const, data: s })),
+    ...availableMachines.map(m => ({ type: 'machine' as const, data: m })),
+  ];
 
   // Check if unit can be afforded
   const canAffordUnit = (cost: number) => cost <= remainingPoints;
@@ -78,19 +94,57 @@ export function UnitSelector({
   // Budget color coding
   const getBudgetColor = () => {
     const percentage = (remainingPoints / pointBudget) * 100;
+    if (percentage > 50) return '#22c55e'; // green-500
+    if (percentage >= 20) return '#eab308'; // yellow-500
+    return '#ef4444'; // red-500
+  };
+
+  const getBudgetColorClass = () => {
+    const percentage = (remainingPoints / pointBudget) * 100;
     if (percentage > 50) return 'text-green-400';
     if (percentage >= 20) return 'text-yellow-400';
     return 'text-red-400';
   };
 
   // Handle add unit with budget check
-  const handleAddUnit = (squad: Squad) => {
-    if (!canAffordUnit(squad.cost)) {
+  const handleAddUnit = (unit: UnitDisplay) => {
+    if (!canAffordUnit(unit.data.cost)) {
       setShowWarning(true);
       setTimeout(() => setShowWarning(false), 3000);
       return;
     }
-    onAddUnit(squad);
+    if (unit.type === 'squad') {
+      onAddUnit(unit.data as Squad);
+    } else if (unit.type === 'machine' && onAddMachine) {
+      onAddMachine(unit.data as Machine);
+    }
+  };
+
+  // Handle unit card click
+  const handleUnitClick = (unit: UnitDisplay) => {
+    setExpandedUnitId(unit.data.id === expandedUnitId ? null : unit.data.id);
+    setSelectedUnit(unit);
+    setIsModalOpen(true);
+  };
+
+  // Get unit type badge
+  const getUnitTypeBadge = (type: 'squad' | 'machine') => {
+    if (type === 'squad') {
+      return { icon: Users, label: 'Отряд', color: 'text-blue-400' };
+    }
+    return { icon: Zap, label: 'Машина', color: 'text-yellow-400' };
+  };
+
+  // Get unit description/role
+  const getUnitRole = (unit: UnitDisplay): string => {
+    if (unit.type === 'squad') {
+      const squad = unit.data as Squad;
+      const soldierCount = squad.soldiers.length;
+      return `${soldierCount} бойцов`;
+    }
+    const machine = unit.data as Machine;
+    const weaponCount = machine.weapons.length;
+    return `${weaponCount} оруж.`;
   };
 
   // Loading state
@@ -119,9 +173,9 @@ export function UnitSelector({
   }
 
   // Empty state
-  if (availableSquads.length === 0) {
+  if (availableUnits.length === 0) {
     return (
-      <div className="text-center p-6 sm:p-12 bg-slate-800/50 rounded-lg space-y-6">
+      <div className="text-center p-6 sm:p-12 bg-slate-700/40 rounded-lg space-y-6">
         <p className="text-slate-400 text-base sm:text-lg">Для этой фракции пока нет доступных юнитов</p>
         {onBackToFactionSelect && (
           <button
@@ -140,38 +194,51 @@ export function UnitSelector({
   return (
     <div className="space-y-6">
       {/* Back to faction select button */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex gap-3 mb-6">
         {onBackToFactionSelect && (
           <button
             onClick={onBackToFactionSelect}
-            className="flex-1 sm:flex-none px-3 sm:px-4 py-3 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 min-h-[48px] touch-manipulation"
+            className="flex items-center gap-2 text-slate-400 hover:text-slate-300 transition-colors"
           >
-            <ArrowLeft size={18} className="flex-shrink-0" />
-            <span className="hidden sm:inline">Вернуться к выбору фракции</span>
-            <span className="sm:hidden">Назад к фракции</span>
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Назад к фракции</span>
+            <span className="sm:hidden">Назад</span>
           </button>
         )}
         {onResetFully && (
           <button
             onClick={onResetFully}
-            className="flex-1 sm:flex-none px-3 sm:px-4 py-3 bg-red-900/50 hover:bg-red-800/70 active:bg-red-800/50 text-red-200 hover:text-red-100 rounded-lg font-medium transition-all flex items-center justify-center gap-2 min-h-[48px] touch-manipulation"
+            className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors"
             title="Начать игру заново с выбора фракции"
           >
-            <RotateCcw size={18} className="flex-shrink-0" />
+            <RotateCcw className="w-4 h-4" />
             <span className="hidden sm:inline">Начать заново</span>
             <span className="sm:hidden">Заново</span>
           </button>
         )}
       </div>
 
-      {/* Budget display */}
+      {/* Budget display card */}
       <div
-        role="status"
-        aria-live="polite"
-        className={`text-2xl font-bold ${getBudgetColor()}`}
-        aria-label={`Осталось ${remainingPoints} из ${pointBudget} очков`}
+        className="p-4 rounded-xl border-2 bg-slate-700/40"
+        style={{ borderColor: '#475569' }}
       >
-        Осталось очков: {remainingPoints} / {pointBudget}
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400">Осталось очков:</span>
+          <span className={`text-3xl font-bold ${getBudgetColorClass()}`}>
+            {remainingPoints} / {pointBudget}
+          </span>
+        </div>
+        {/* Progress bar */}
+        <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
+          <div
+            className="h-full transition-all duration-300"
+            style={{
+              width: `${Math.max(0, (remainingPoints / pointBudget) * 100)}%`,
+              backgroundColor: getBudgetColor(),
+            }}
+          />
+        </div>
       </div>
 
       {/* Warning toast */}
@@ -187,57 +254,81 @@ export function UnitSelector({
 
       {/* Available units */}
       <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-slate-200">Доступные юниты</h3>
+        <h3 className="text-2xl font-semibold text-slate-200">Доступные юниты</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {availableSquads.map((squad) => {
-            const affordable = canAffordUnit(squad.cost);
+          {availableUnits.map((unit) => {
+            const affordable = canAffordUnit(unit.data.cost);
+            const typeBadge = getUnitTypeBadge(unit.type);
+            const TypeIcon = typeBadge.icon;
+            const count = unitCounts[unit.data.id] || 0;
 
             return (
               <div
-                key={squad.id}
-                onClick={() => {
-                  setSelectedSquad(squad);
-                  setIsModalOpen(true);
+                key={unit.data.id}
+                onClick={() => handleUnitClick(unit)}
+                className={`
+                  relative p-4 rounded-lg border-2 cursor-pointer transition-all
+                  min-h-[120px] min-w-[44px] touch-manipulation
+                  ${affordable ? 'hover:scale-102' : ''}
+                  active:scale-95
+                `}
+                style={{
+                  borderColor: affordable && faction ? faction.color : '#334155',
+                  backgroundColor: affordable && faction ? `${faction.color}10` : 'rgba(51, 65, 85, 0.4)',
                 }}
-                className="bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-slate-600 transition-all cursor-pointer relative group"
               >
                 {/* Unit image */}
-                {squad.image && (
+                {unit.data.image && (
                   <img
-                    src={squad.image}
-                    alt={squad.name}
+                    src={unit.data.image}
+                    alt={unit.data.name}
                     className="w-full h-[120px] object-cover rounded mb-3 min-w-[120px]"
                     loading="lazy"
                   />
                 )}
 
                 {/* Info badge in corner */}
-                <div className="absolute top-2 right-2 bg-slate-700/80 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 right-2 bg-slate-700/80 rounded-full p-1.5">
                   <Info className="w-4 h-4 text-blue-400" />
                 </div>
 
-                {/* Unit name and cost */}
-                <div className="flex justify-between items-start mb-3 pr-6">
-                  <h4 className="text-lg font-semibold text-slate-200">{squad.name}</h4>
-                  <span className={`text-sm font-bold ${affordable ? 'text-green-400' : 'text-red-400'}`}>
-                    {squad.cost} очков
+                {/* Type badge */}
+                <div className="absolute top-2 left-2 bg-slate-700/80 rounded-full p-1.5">
+                  <TypeIcon className={`w-4 h-4 ${typeBadge.color}`} />
+                </div>
+
+                {/* Header: Name + Cost + Type */}
+                <div className="flex items-center justify-between mb-2 mt-6">
+                  <h4 className="text-lg font-semibold text-slate-200 truncate">{unit.data.name}</h4>
+                  <span className={affordable ? 'text-green-400' : 'text-red-400'}>
+                    {unit.data.cost} очков
                   </span>
                 </div>
+
+                {/* Brief description/role */}
+                <p className="text-sm italic text-slate-400 mb-2">
+                  {getUnitRole(unit)}
+                </p>
+
+                {/* Color indicator bar */}
+                {faction && (
+                  <div className="h-1 rounded" style={{ backgroundColor: faction.color }}></div>
+                )}
 
                 {/* Add button - stopPropagation to prevent opening modal when clicking add */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAddUnit(squad);
+                    handleAddUnit(unit);
                   }}
                   disabled={!affordable}
                   aria-disabled={!affordable}
-                  aria-label={`Добавить ${squad.name}`}
+                  aria-label={`Добавить ${unit.data.name}`}
                   className={`
-                    w-full py-3 px-4 rounded-lg font-semibold transition-all
+                    w-full mt-3 py-3 px-4 rounded-lg font-semibold transition-all
                     flex items-center justify-center gap-2 min-h-[48px] min-w-[48px] touch-manipulation relative
                     ${affordable
-                      ? 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
                       : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                     }
                   `}
@@ -245,9 +336,9 @@ export function UnitSelector({
                   <Plus size={20} />
                   Добавить
                   {/* Count badge */}
-                  {unitCounts[squad.id] > 0 && (
+                  {count > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-6 min-w-[24px] flex items-center justify-center border-2 border-slate-900">
-                      {unitCounts[squad.id]}
+                      {count}
                     </span>
                   )}
                 </button>
@@ -260,28 +351,45 @@ export function UnitSelector({
       {/* Selected army */}
       {army.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-slate-200">Ваша армия ({army.length})</h3>
+          <h3 className="text-2xl font-semibold text-slate-200">Ваша армия ({army.length})</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {army.map((unit) => {
-              const squad = unit.data as Squad;
+              const typeBadge = getUnitTypeBadge(unit.type);
+              const TypeIcon = typeBadge.icon;
+
               return (
                 <div
                   key={unit.instanceId}
-                  className="bg-slate-800 rounded-lg p-4 border-2 border-green-600"
+                  className={`
+                    relative p-4 rounded-lg border-2 cursor-pointer transition-all
+                    scale-102
+                  `}
+                  style={{
+                    borderColor: '#22c55e', // green-500
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)', // green-500/10
+                  }}
                 >
-                  <div className="flex justify-between items-start">
+                  {/* Type badge */}
+                  <div className="absolute top-2 left-2 bg-slate-700/80 rounded-full p-1.5">
+                    <TypeIcon className={`w-4 h-4 ${typeBadge.color}`} />
+                  </div>
+
+                  <div className="flex justify-between items-start mt-6">
                     <div className="flex-1">
-                      <h4 className="text-lg font-semibold text-slate-200">{squad.name}</h4>
-                      <p className="text-sm text-green-400 font-bold">{squad.cost} очков</p>
+                      <h4 className="text-lg font-semibold text-slate-200">{unit.data.name}</h4>
+                      <p className="text-sm text-green-400 font-bold">{unit.data.cost} очков</p>
                     </div>
                     <button
                       onClick={() => onRemoveUnit(unit.instanceId)}
-                      aria-label={`Удалить ${squad.name}`}
+                      aria-label={`Удалить ${unit.data.name}`}
                       className="p-2 text-red-400 hover:bg-red-900/30 rounded min-w-[48px] min-h-[48px] flex items-center justify-center touch-manipulation"
                     >
                       <X size={20} />
                     </button>
                   </div>
+
+                  {/* Color indicator bar */}
+                  <div className="h-1 rounded mt-3" style={{ backgroundColor: '#22c55e' }}></div>
                 </div>
               );
             })}
@@ -290,33 +398,23 @@ export function UnitSelector({
       )}
 
       {/* To Battle button */}
-      <div className="pt-4 border-t border-slate-700">
-        <button
-          onClick={onToBattle}
-          disabled={army.length === 0}
-          aria-disabled={army.length === 0}
-          className={`
-            w-full py-4 px-6 rounded-lg font-bold text-lg transition-all
-            flex items-center justify-center gap-3 min-h-[56px] touch-manipulation
-            ${army.length > 0
-              ? 'bg-red-600 hover:bg-red-700 text-white active:scale-98'
-              : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-            }
-          `}
-        >
-          В бой
-          <Check size={24} />
-        </button>
-        {army.length === 0 && (
-          <p className="text-center text-sm text-slate-500 mt-2">Армия пуста</p>
-        )}
-      </div>
+      {army.length > 0 && (
+        <div className="pt-4">
+          <button
+            onClick={onToBattle}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all min-h-[48px]"
+          >
+            В бой
+            <Check className="inline ml-2" size={20} />
+          </button>
+        </div>
+      )}
 
       {/* Unit details modal */}
-      {selectedSquad && faction && (
+      {selectedUnit && faction && (
         <UnitDetailsModal
-          unit={selectedSquad}
-          unitType="squad"
+          unit={selectedUnit.data}
+          unitType={selectedUnit.type}
           faction={faction}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

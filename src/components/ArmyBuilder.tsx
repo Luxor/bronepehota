@@ -218,6 +218,7 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
           <UnitSelector
             factions={typedFactions}
             squads={typedSquads}
+            machines={typedMachines}
             selectedFaction={army.faction}
             pointBudget={army.pointBudget}
             army={army.units}
@@ -245,6 +246,29 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
                 ...army,
                 units: [...army.units, newUnit],
                 totalCost: army.totalCost + squad.cost,
+              });
+            }}
+            onAddMachine={(machine) => {
+              // Calculate instance number for this unit type
+              const existingUnitsOfType = army.units.filter(u => u.data.id === machine.id);
+              const instanceNumber = existingUnitsOfType.length + 1;
+
+              const newUnit: ArmyUnit = {
+                instanceId: `${machine.id}_${Date.now()}`,
+                type: 'machine',
+                data: machine,
+                instanceNumber,
+                currentDurability: machine.durability_max,
+                currentAmmo: machine.ammo_max,
+                deadSoldiers: undefined,
+                actionsUsed: [{ moved: false, shot: false, melee: false, done: false }],
+                machineShotsUsed: 0,
+                machineWeaponShots: {},
+              };
+              setArmy({
+                ...army,
+                units: [...army.units, newUnit],
+                totalCost: army.totalCost + machine.cost,
               });
             }}
             onRemoveUnit={(instanceId) => {
