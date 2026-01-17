@@ -154,3 +154,56 @@ export function getDiceType(rollStr: string): 6 | 12 | 20 {
   if (rollStr.includes('D12')) return 12;
   return 6;
 }
+
+/**
+ * Format dice notation for display
+ * Returns the roll string as-is, or could be extended for localized display
+ */
+export function formatDiceNotation(rollStr: string): string {
+  return rollStr;
+}
+
+/**
+ * Get unit stats for combat display
+ * Returns range, power, and melee values based on unit type and soldier index
+ */
+export interface UnitStats {
+  range: string;
+  power: string;
+  melee: number;
+  displayName: string;
+}
+
+export function getUnitStats(unit: any, soldierIndex?: number | null, weaponIndex?: number): UnitStats | null {
+  if (!unit || !unit.data) return null;
+
+  const isSquad = unit.type === 'squad';
+
+  if (isSquad && soldierIndex !== null && soldierIndex !== undefined) {
+    const soldiers = unit.data.soldiers;
+    if (!soldiers || !soldiers[soldierIndex]) return null;
+    const soldier = soldiers[soldierIndex];
+    if (!soldier) return null;
+
+    return {
+      range: soldier.range || 'D6',
+      power: soldier.power || '1D6',
+      melee: soldier.melee || 0,
+      displayName: soldier.rank || 'Боец',
+    };
+  }
+
+  if (!isSquad && weaponIndex !== undefined) {
+    const weapon = unit.data.weapons?.[weaponIndex];
+    if (!weapon) return null;
+
+    return {
+      range: weapon.range || 'D6',
+      power: weapon.power || '1D6',
+      melee: 0, // Machines typically don't have melee stats
+      displayName: weapon.name || 'Оружие',
+    };
+  }
+
+  return null;
+}
