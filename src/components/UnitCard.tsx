@@ -384,7 +384,7 @@ export default function UnitCard({ unit, updateUnit, combatLog = [], onCombatLog
                           </button>
                           <button
                             onClick={() => toggleDead(idx)}
-                            className={cn("text-[8px] md:text-[9px] px-1.5 md:px-2 py-1 md:py-0.5 rounded font-black uppercase tracking-tiller min-h-[44px] md:min-h-0 flex items-center justify-center", isDead ? "bg-red-900 text-red-100" : "bg-slate-800 text-slate-400 border border-slate-700)}
+                            className={cn("text-[8px] md:text-[9px] px-1.5 md:px-2 py-1 md:py-0.5 rounded font-black uppercase tracking-tiller min-h-[44px] md:min-h-0 flex items-center justify-center", isDead ? "bg-red-900 text-red-100" : "bg-slate-800 text-slate-400 border border-slate-700")}
                           >
                             {isDead ? 'УБИТ' : 'ЖИВ'}
                           </button>
