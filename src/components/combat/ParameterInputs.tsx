@@ -6,6 +6,8 @@ import { NumberStepper } from '@/components/ui/NumberStepper';
 import { FortificationSelector } from '@/components/FortificationSelector';
 import { RulesVersionID } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { StaticDiceDisplay } from './StaticDiceDisplay';
+import { getUnitStats } from '@/lib/game-logic';
 
 interface ParameterInputsProps {
   actionType: CombatActionType;
@@ -13,6 +15,8 @@ interface ParameterInputsProps {
   onChange: (params: Partial<CombatParameters>) => void;
   rulesVersion: RulesVersionID;
   className?: string;
+  unit?: any;
+  soldierIndex?: number | null;
 }
 
 export function ParameterInputs({
@@ -21,9 +25,104 @@ export function ParameterInputs({
   onChange,
   rulesVersion,
   className,
+  unit,
+  soldierIndex,
 }: ParameterInputsProps) {
+  // Get unit stats for preview
+  const unitStats = unit ? getUnitStats(unit, soldierIndex, parameters.weaponIndex) : null;
+
+  // Render stats preview for shot/grenade
+  const renderShotGrenadeStats = () => {
+    if (actionType === 'grenade') {
+      // Grenades have fixed dice
+      return (
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/50 p-4 rounded-xl border border-slate-700 mb-4">
+          <div className="text-[10px] opacity-50 uppercase font-bold mb-3 tracking-wider text-center">
+            Граната
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-900/50 p-3 rounded-lg border border-blue-500/30">
+              <div className="text-[8px] opacity-40 uppercase font-bold mb-2 text-center">Дальность</div>
+              <div className="flex justify-center">
+                <StaticDiceDisplay rollStr="D6" size="md" color="blue" />
+              </div>
+            </div>
+            <div className="bg-slate-900/50 p-3 rounded-lg border border-orange-500/30">
+              <div className="text-[8px] opacity-40 uppercase font-bold mb-2 text-center">Мощность</div>
+              <div className="flex justify-center">
+                <StaticDiceDisplay rollStr="1D20" size="md" color="orange" />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (unitStats) {
+      return (
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/50 p-4 rounded-xl border border-slate-700 mb-4">
+          <div className="text-[10px] opacity-50 uppercase font-bold mb-3 tracking-wider text-center">
+            Ваше оружие
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-900/50 p-3 rounded-lg border border-blue-500/30">
+              <div className="text-[8px] opacity-40 uppercase font-bold mb-2 text-center">Дальность</div>
+              <div className="flex justify-center">
+                <StaticDiceDisplay rollStr={unitStats.range} size="md" color="blue" showLabel />
+              </div>
+            </div>
+            <div className="bg-slate-900/50 p-3 rounded-lg border border-orange-500/30">
+              <div className="text-[8px] opacity-40 uppercase font-bold mb-2 text-center">Мощность</div>
+              <div className="flex justify-center">
+                <StaticDiceDisplay rollStr={unitStats.power} size="md" color="orange" showLabel />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  // Render stats preview for melee
+  const renderMeleeStats = () => {
+    if (!unitStats) return null;
+
+    return (
+      <div className="bg-gradient-to-br from-slate-800 to-slate-800/50 p-4 rounded-xl border border-slate-700 mb-4">
+        <div className="text-[10px] opacity-50 uppercase font-bold mb-3 tracking-wider text-center">
+          Ближний бой
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-slate-900/50 p-3 rounded-lg border border-blue-500/30">
+            <div className="text-[8px] opacity-40 uppercase font-bold mb-2 text-center">Вы</div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-lg font-black text-blue-400">ББ: +{unitStats.melee}</div>
+              <StaticDiceDisplay rollStr="1D6" size="sm" color="blue" />
+            </div>
+          </div>
+          <div className="bg-slate-900/50 p-3 rounded-lg border border-red-500/30">
+            <div className="text-[8px] opacity-40 uppercase font-bold mb-2 text-center">Цель</div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-lg font-black text-red-400">ББ: {parameters.targetMelee}</div>
+              <StaticDiceDisplay rollStr="1D6" size="sm" color="red" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 text-center text-xs opacity-60">
+          Ваш итог: D6 + {unitStats.melee} vs Цель: D6 + {parameters.targetMelee}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={cn("space-y-4", className)}>
+      {/* Unit Stats Preview */}
+      {(actionType === 'shot' || actionType === 'grenade') && renderShotGrenadeStats()}
+      {actionType === 'melee' && renderMeleeStats()}
+
       <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
         <div className="text-xs opacity-50 uppercase font-bold mb-4 tracking-wider">Параметры атаки</div>
 

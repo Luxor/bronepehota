@@ -141,6 +141,8 @@ export function BottomSheetCombatModal({
                 parameters={state.parameters}
                 onChange={onSetParameters}
                 rulesVersion={rulesVersion}
+                unit={state.unit}
+                soldierIndex={state.soldierIndex}
               />
 
               {/* Execute button */}
