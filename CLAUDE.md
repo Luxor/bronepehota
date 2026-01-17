@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Бронепехота (Bronepehota) is a Next.js 14 web application for a tabletop wargame. The app allows players to build armies, manage game sessions, and edit game data (squads, machines, factions). All UI text is in Russian; code uses English conventions.
 
+**Primary Target Device**: Mobile phones (MOBILE FIRST design approach). All UI components should be designed with mobile touch interactions in mind first, then enhanced for desktop.
+
+**Frontend Design**: When building new UI components or pages, use the `frontend-design` skill to ensure production-grade, visually polished interfaces that avoid generic AI aesthetics.
+
 ## Development Commands
 
 ```bash
@@ -43,7 +47,11 @@ All API routes use synchronous `readFileSync`/`writeFileSync` operations. The PO
 
 ### State Management
 
-**Client-side persistence**: Army state is saved to `localStorage` under key `bronepehota_army`. The main page (`src/app/page.tsx`) manages the `Army` state and passes it down to child components.
+**Client-side persistence** (localStorage keys):
+- `bronepehota_army` - Player's army state (units, totalCost, faction)
+- `bronepehota_rules_version` - Selected rules version for game session
+
+The main page (`src/app/page.tsx`) manages the `Army` state and passes it down to child components.
 
 **Runtime vs Template Data**:
 - Template data (Squad, Machine) = immutable definitions from JSON
@@ -72,6 +80,21 @@ Dice notation parsing: `D6`, `D12+2`, `2D12`, `ББ` (melee)
 - `calculateDamage(powerStr, targetArmor)` → damage count
 - `calculateMelee(attackerMelee, defenderMelee)` → combat resolution
 
+### Rules System (`src/lib/`)
+
+**Rules Registry** (`rules-registry.ts`): Manages multiple rule versions with selectors for game sessions.
+- `getAllRulesVersions()` - List all available rule versions
+- `getRulesByVersion(version)` - Get specific rules implementation
+
+**Rule Implementations** (`rules/`):
+- `fan.ts` - Fan rules implementation
+- `tehnolog.ts` - Tehnolog rules implementation
+
+Adding a new rules version:
+1. Create new file in `src/lib/rules/{version}.ts`
+2. Export rules object with required game mechanics
+3. Register in `rules-registry.ts`
+
 ### Component Structure
 
 **Main Page** (`src/app/page.tsx`):
@@ -85,6 +108,21 @@ Dice notation parsing: `D6`, `D12+2`, `2D12`, `ББ` (melee)
 - `UnitCard.tsx` - Individual unit display, combat modal, animated dice
 - `ArmlistEditor.tsx` - Create/edit squads and machines with nested sub-editors
 - `CombatAssistant.tsx` - Standalone combat calculator
+- `UnitDetailsModal.tsx` - Bottom sheet modal for unit details (mobile swipe-to-close)
+- `UnitSelector.tsx` - Unit selection interface with filters
+
+**Rules Components**:
+- `RulesSelector.tsx` - Rules version selection interface
+- `RulesVersionSelector.tsx` - Dropdown/picker for rules version
+- `RulesInfoModal.tsx` - Modal displaying current rules details
+- `StepProgressIndicator.tsx` - Visual step progress for multi-step flows
+
+**UI Components**:
+- `FactionSelector.tsx` - Faction selection with visual branding
+- `PointBudgetInput.tsx` - Army point budget input
+- `FortificationSelector.tsx` - Fortification selection for units
+- `DiceRoller.tsx` - Animated dice rolling component
+- `SafeImage.tsx` - Image component with error handling
 
 ### Editor Pattern
 
@@ -97,11 +135,24 @@ The editor uses nested components:
 
 **Image Upload**: Three methods - file picker, drag-drop, clipboard paste (Ctrl+V). Images saved to `public/images/squads/` or `public/images/machines/`.
 
+### Custom Hooks (`src/hooks/`)
+
+- `useBottomSheet.ts` - Swipe-down gesture hook for mobile bottom sheets
+  - Configurable close threshold (default: 100px)
+  - Touch handlers for drag-to-close
+  - Smooth snap-back animation
+
+### Utilities (`src/lib/`)
+
+- `unit-utils.ts` - Helper functions for unit operations (numbering, validation, etc.)
+
 ### Styling
 
+- **MOBILE FIRST**: Design for mobile screens first (320px+), then enhance for tablets and desktop using Tailwind's `md:` and `lg:` breakpoints
 - **Tailwind CSS** with dark theme (slate-900 base)
 - **Faction colors**: Polaris (red #ef4444), Protectorate (blue #3b82f6), Mercenaries (yellow #eab308)
-- **Responsive**: Mobile-first, hide labels on mobile (`hidden md:inline`)
+- **Touch-friendly targets**: Minimum 44x44px tap targets (WCAG 2.5.5)
+- **Responsive patterns**: Bottom sheets for mobile modals, centered cards for desktop, hide labels on mobile (`hidden md:inline`)
 - **Path alias**: `@/*` maps to `src/*` (configured in `tsconfig.json`)
 
 ### Testing
@@ -110,23 +161,38 @@ Jest with jsdom environment. Tests focus on game logic utilities (`game-logic.ts
 
 ## Important Notes
 
-1. **All API error messages must be in Russian** (e.g., `Ошибка чтения данных`)
-2. **Dice notation**: "D6", "D12", "D20" for range; "1D6", "2D12" for power; "ББ" for melee
-3. **Speed sectors** must cover full range from 1 to `durability_max` without gaps
-4. **Props** are string arrays: `["Г"]` for grenade, `[]` for none
-5. **Images**: Max 10MB, saved with timestamp + random suffix for uniqueness
+1. **MOBILE FIRST DESIGN**: Primary target device is mobile phone. Always design UI for mobile first, then enhance for desktop. Use bottom sheets for modals, large tap targets (min 44x44px), swipe gestures where appropriate.
+2. **Frontend Design Skill**: Use `frontend-design` skill when building new UI components to ensure production-grade, visually polished interfaces.
+3. **All API error messages must be in Russian** (e.g., `Ошибка чтения данных`)
+4. **Dice notation**: "D6", "D12", "D20" for range; "1D6", "2D12" for power; "ББ" for melee
+5. **Speed sectors** must cover full range from 1 to `durability_max` without gaps
+6. **Props** are string arrays: `["Г"]` for grenade, `[]` for none
+7. **Images**: Max 10MB, saved with timestamp + random suffix for uniqueness
 
 ## Active Technologies
-- TypeScript 5.x (via Next.js 14) + React 18, Next.js 14, Tailwind CSS, Lucide React (001-army-building-flow)
-- JSON files in `src/data/` (factions.json, squads.json) + localStorage for army state (001-army-building-flow)
-- JSON files in `src/data/` (factions.json, squads.json, machines.json) + localStorage for army state (001-show-unit-details)
-- TypeScript 5.x (via Next.js 14) + React 18 + Next.js 14, React 18, Tailwind CSS, Lucide React (001-unit-numbering)
-- JSON files in `src/data/` (factions.json, squads.json, machines.json) + localStorage for army state (`bronepehota_army`) (001-unit-numbering)
-- TypeScript 5.x (via Next.js 14.2.35, React 18) + React 18, Next.js 14, Tailwind CSS, Lucide React, clsx, tailwind-merge (002-rules-version-selection)
-- localStorage for rules version persistence (key: `bronepehota_rules_version`), JSON files for game data in `src/data/` (002-rules-version-selection)
-- JSON files in `src/data/` (factions.json, squads.json, machines.json) + localStorage for rules version (`bronepehota_rules_version`) (003-official-rules)
-- TypeScript 5.x (via Next.js 14.2.35), React 18 + Next.js 14, React 18, Tailwind CSS, Lucide React (001-rules-selector)
-- localStorage (`bronepehota_rules_version`), JSON files in `src/data/` (extended RulesVersion in code) (001-rules-selector)
+
+**Core Stack**:
+- TypeScript 5.x (via Next.js 14.2.35)
+- React 18
+- Next.js 14 (App Router)
+- Tailwind CSS
+- Lucide React (icons)
+
+**State & Storage**:
+- localStorage for army state (`bronepehota_army`)
+- localStorage for rules version (`bronepehota_rules_version`)
+- JSON files in `src/data/` (factions.json, squads.json, machines.json)
+
+**Testing**:
+- Jest with jsdom environment
+
+**Utilities**:
+- clsx, tailwind-merge for conditional styling
 
 ## Recent Changes
-- 001-army-building-flow: Added TypeScript 5.x (via Next.js 14) + React 18, Next.js 14, Tailwind CSS, Lucide React
+- **Bottom Sheet Redesign**: `UnitDetailsModal` redesigned as mobile bottom sheet with swipe-to-close gesture (`useBottomSheet` hook)
+- **Rules System**: Added multi-version rules support with `rules-registry.ts` and rule implementations (fan, tehno)
+- **Rules Selector**: `RulesSelector`, `RulesVersionSelector`, `RulesInfoModal` components
+- **Step Progress**: `StepProgressIndicator` component for multi-step flows
+- **Unit Selector**: `UnitSelector.tsx` component with filtering
+- **Mobile First**: MOBILE FIRST design approach documented, bottom sheet patterns established

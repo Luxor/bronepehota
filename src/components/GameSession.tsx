@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Army, ArmyUnit, Squad, Machine } from '@/lib/types';
 import UnitCard from './UnitCard';
-import DiceRoller from './DiceRoller';
-import { LayoutGrid, Target, Dices, RotateCcw, Users, X, Info, ChevronLeft, ChevronRight, Maximize2, Minimize2, CheckCircle2, Bomb, Heart, UserX } from 'lucide-react';
+import { Dices, RotateCcw, Users, ChevronLeft, ChevronRight, CheckCircle2, Heart, UserX, History } from 'lucide-react';
 import { rollDie } from '@/lib/game-logic';
-import { formatUnitNumber, countByUnitType } from '@/lib/unit-utils';
+import { formatUnitNumber } from '@/lib/unit-utils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { CombatLogEntry } from '@/lib/combat-types';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -21,14 +21,15 @@ interface GameSessionProps {
   onEndBattle?: () => void;
 }
 
-export default function GameSession({ army, setArmy, isInBattle = false, onEndBattle }: GameSessionProps) {
+export default function GameSession({ army, setArmy }: GameSessionProps) {
   const [showInitiative, setShowInitiative] = useState(false);
   const [initRoll, setInitRoll] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
-
-  // New state for focused view
-  const [viewMode, setViewMode] = useState<'grid' | 'focused'>('focused');
   const [focusedUnitIdx, setFocusedUnitIdx] = useState(0);
+  const [showCombatLog, setShowCombatLog] = useState(false);
+
+  // Combat log state
+  const [combatLog, setCombatLog] = useState<CombatLogEntry[]>([]);
 
   const updateUnit = (updatedUnit: ArmyUnit) => {
     setArmy({
@@ -37,19 +38,14 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
     });
   };
 
-  // Calculate unit counts for badges
-  const unitCounts = useMemo(() => {
-    return countByUnitType(army.units);
-  }, [army.units]);
-
-  // Get squad and machine counts
-  const squadCount = army.units.filter(u => u.type === 'squad').length;
-  const machineCount = army.units.filter(u => u.type === 'machine').length;
+  const handleCombatLogEntry = (entry: CombatLogEntry) => {
+    setCombatLog(prev => [entry, ...prev]);
+  };
 
   const calculateInitiative = () => {
     setIsRolling(true);
     setShowInitiative(true);
-    
+
     let count = 0;
     const interval = setInterval(() => {
       setInitRoll(rollDie(6));
@@ -66,6 +62,7 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
   const startNewTurn = () => {
     setArmy({
       ...army,
+      currentTurn: (army.currentTurn || 1) + 1,
       units: army.units.map(u => {
         if (u.type === 'squad') {
           return {
@@ -89,11 +86,11 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
     setFocusedUnitIdx(0);
   };
 
-  const activeUnitsCount = army.units.filter(u => {
-    if (u.type === 'squad') {
-      return (u.deadSoldiers?.length || 0) < (u.data as Squad).soldiers.length;
+  const activeUnitsCount = army.units.filter(unit => {
+    if (unit.type === 'squad') {
+      return (unit.deadSoldiers?.length || 0) < (unit.data as Squad).soldiers.length;
     }
-    return (u.currentDurability || 0) > 0;
+    return (unit.currentDurability || 0) > 0;
   }).length;
 
   const nextUnit = () => setFocusedUnitIdx((prev) => (prev + 1) % army.units.length);
@@ -102,15 +99,25 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
   // Helper to get unit status for summary
   const getUnitStatus = (unit: ArmyUnit) => {
     const isSquad = unit.type === 'squad';
-    const isDead = isSquad 
+    const isDead = isSquad
       ? (unit.deadSoldiers?.length || 0) === (unit.data as Squad).soldiers.length
       : (unit.currentDurability || 0) === 0;
     const isDone = isSquad
       ? (unit.data as Squad).soldiers.every((_, idx) => unit.deadSoldiers?.includes(idx) || unit.actionsUsed?.[idx]?.done)
       : unit.isMachineDone;
-    
+
     return { isDead, isDone };
   };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') prevUnit();
+      if (e.key === 'ArrowRight') nextUnit();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-slate-950 to-slate-900 relative overflow-hidden">
@@ -140,201 +147,274 @@ export default function GameSession({ army, setArmy, isInBattle = false, onEndBa
         </div>
       )}
 
-      {/* Unified Top Bar with Controls and Unit Navigation */}
+      {/* Unit Navigation Header */}
       <div className="bg-slate-900/90 border-b border-slate-800/50 shrink-0">
-        {/* Top Row: View toggle, New Turn, Combat toggle, End Battle */}
-        <div className="flex items-center justify-between px-2 md:px-3 py-2 gap-1 md:gap-2 border-b border-slate-800/30">
-          {/* View Mode Toggle */}
-          <div className="flex gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/50 shrink-0">
-            <button
-              onClick={() => setViewMode('focused')}
-              className={cn("p-1.5 md:p-2 rounded-lg transition-all flex items-center justify-center", viewMode === 'focused' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}
-              title="Фокус"
-            >
-              <Maximize2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={cn("p-1.5 md:p-2 rounded-lg transition-all flex items-center justify-center", viewMode === 'grid' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}
-              title="Сетка"
-            >
-              <LayoutGrid className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            </button>
-          </div>
-
-          {/* New Turn Button */}
-          <button
-            onClick={calculateInitiative}
-            className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase bg-blue-600/20 text-blue-400 border border-blue-500/40 px-2 md:px-3 py-1.5 md:py-2 rounded-lg transition-all hover:bg-blue-600/30 active:scale-95 shadow-lg shrink-0"
-          >
-            <RotateCcw className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Новый Тур</span>
-          </button>
-
-          {/* End Battle Button - only shown when isInBattle is true */}
-          {isInBattle && onEndBattle && (
-            <button
-              onClick={onEndBattle}
-              className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase bg-red-600/20 text-red-400 border border-red-500/40 px-2 md:px-3 py-1.5 md:py-2 rounded-lg transition-all hover:bg-red-600/30 active:scale-95 shadow-lg shrink-0"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Завершить бой</span>
-            </button>
-          )}
-        </div>
-
-        {/* Unit Navigation Row with Arrows */}
-        <div className="flex items-center gap-2 px-2 py-2 min-h-[52px]">
-          {/* Prev Button */}
+        {/* Desktop Navigation with Arrows */}
+        <div className="hidden md:flex items-center gap-3 px-4 py-3">
           <button
             onClick={prevUnit}
-            className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg text-slate-300 active:scale-90 transition-all min-w-[36px] h-9 flex items-center justify-center border border-slate-700/50 shrink-0"
+            className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-slate-300 active:scale-90 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center border border-slate-700/50"
+            title="Предыдущий (←)"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
 
-          {/* Unit Cards Scrollable */}
-          <div className="flex-1 overflow-x-auto flex gap-1.5 min-w-0 overflow-y-hidden">
+          <div className="flex-1 flex gap-2 overflow-x-auto overflow-y-hidden min-h-[52px] items-center justify-center">
             {army.units.map((unit, idx) => {
               const { isDead, isDone } = getUnitStatus(unit);
-              const isActive = focusedUnitIdx === idx && viewMode === 'focused';
+              const isActive = focusedUnitIdx === idx;
 
-              // Calculate health percentage for visual bar
-              let healthPercent = 100;
+              // Calculate health for display
+              let currentHealth = 0;
+              let maxHealth = 0;
               if (unit.type === 'squad') {
-                const total = (unit.data as Squad).soldiers.length;
-                const dead = unit.deadSoldiers?.length || 0;
-                healthPercent = ((total - dead) / total) * 100;
+                maxHealth = (unit.data as Squad).soldiers.length;
+                currentHealth = maxHealth - (unit.deadSoldiers?.length || 0);
               } else {
-                const max = (unit.data as Machine).durability_max;
-                const current = unit.currentDurability || 0;
-                healthPercent = (current / max) * 100;
+                maxHealth = (unit.data as Machine).durability_max;
+                currentHealth = unit.currentDurability || 0;
               }
+
+              // Short name (first 2-3 letters)
+              const shortName = (unit.data.name || '').substring(0, 3).toUpperCase();
 
               return (
                 <button
                   key={unit.instanceId}
-                  onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); }}
+                  onClick={() => setFocusedUnitIdx(idx)}
                   className={cn(
-                    "shrink-0 w-14 h-9 rounded-lg border flex flex-row items-center justify-center gap-1 transition-all relative overflow-hidden min-w-[44px]",
+                    "shrink-0 rounded-xl border transition-all relative overflow-hidden",
+                    "min-w-[80px] w-20 h-14",
                     isActive
-                      ? "border-blue-500 bg-blue-900/30 scale-105 shadow-lg shadow-blue-900/30"
+                      ? "border-blue-500 bg-blue-900/40 scale-105 shadow-lg shadow-blue-900/30"
                       : "border-slate-700/50 bg-slate-800/50 opacity-70 hover:opacity-100",
-                    isDead ? "border-red-900/50 bg-red-950/20" : "",
-                    isDone && !isDead ? "border-green-900/50 bg-green-950/30" : ""
+                    isDead ? "border-red-900/50 bg-red-950/30" : "",
+                    isDone && !isDead ? "border-green-900/50 bg-green-950/40" : ""
                   )}
                 >
-                  {/* Unit Number */}
-                  <div className="text-sm md:text-base font-black relative z-10">{formatUnitNumber(unit, idx)}</div>
-
-                  {/* Unit Type Icon */}
-                  {unit.type === 'squad' ? (
-                    <Users className="w-3 h-3 relative z-10" />
-                  ) : (
-                    <Dices className="w-3 h-3 relative z-10" />
-                  )}
-
-                  {/* Status dot */}
-                  <div className={cn(
-                    "absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full",
-                    isDead ? "bg-red-500" : isDone ? "bg-green-500" : "bg-blue-500"
-                  )} />
-
-                  {/* Health bar */}
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900/50">
+                  {/* Background health bar */}
+                  <div className="absolute bottom-0 left-0 right-0 h-2 bg-slate-900/50">
                     <div
                       className="h-full transition-all duration-300"
                       style={{
-                        width: `${healthPercent}%`,
+                        width: `${Math.max(5, (currentHealth / maxHealth) * 100)}%`,
                         backgroundColor: isDead ? '#ef4444' : isDone ? '#22c55e' : '#3b82f6'
                       }}
                     />
                   </div>
+
+                  {/* Content */}
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full p-1 gap-0.5">
+                    {/* Unit number */}
+                    <div className="text-sm font-black leading-none text-slate-200">
+                      {formatUnitNumber(unit, idx)}
+                    </div>
+
+                    {/* Name or icon */}
+                    <div className="text-[10px] font-bold text-slate-400 leading-tight truncate max-w-full">
+                      {shortName || (unit.type === 'squad' ? 'ОТР' : 'МАШ')}
+                    </div>
+
+                    {/* Health badge */}
+                    <div className={cn(
+                      "text-[9px] font-black px-1 rounded",
+                      isDead ? "bg-red-900/50 text-red-300" :
+                      isDone ? "bg-green-900/50 text-green-300" :
+                      "bg-blue-900/50 text-blue-300"
+                    )}>
+                      {currentHealth}/{maxHealth}
+                    </div>
+                  </div>
+
+                  {/* Status indicator */}
+                  <div className={cn(
+                    "absolute top-1 right-1 w-2 h-2 rounded-full border-2 border-slate-900",
+                    isDead ? "bg-red-500" : isDone ? "bg-green-500" : "bg-blue-500"
+                  )} />
                 </button>
               );
             })}
           </div>
 
-          {/* Next Button */}
           <button
             onClick={nextUnit}
-            className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg text-slate-300 active:scale-90 transition-all min-w-[36px] h-9 flex items-center justify-center border border-slate-700/50 shrink-0"
+            className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-slate-300 active:scale-90 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center border border-slate-700/50"
+            title="Следующий (→)"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Mobile Horizontal Scroll */}
+        <div className="md:hidden px-2 pb-3">
+          <div className="flex gap-2 overflow-x-auto overflow-y-hidden min-h-[56px] items-center snap-x">
+            {army.units.map((unit, idx) => {
+              const { isDead, isDone } = getUnitStatus(unit);
+              const isActive = focusedUnitIdx === idx;
+
+              let currentHealth = 0;
+              let maxHealth = 0;
+              if (unit.type === 'squad') {
+                maxHealth = (unit.data as Squad).soldiers.length;
+                currentHealth = maxHealth - (unit.deadSoldiers?.length || 0);
+              } else {
+                maxHealth = (unit.data as Machine).durability_max;
+                currentHealth = unit.currentDurability || 0;
+              }
+
+              const shortName = (unit.data.name || '').substring(0, 2).toUpperCase();
+
+              return (
+                <button
+                  key={unit.instanceId}
+                  onClick={() => setFocusedUnitIdx(idx)}
+                  className={cn(
+                    "shrink-0 snap-start rounded-xl border transition-all relative overflow-hidden",
+                    "w-16 h-14 min-w-[64px]",
+                    isActive
+                      ? "border-blue-500 bg-blue-900/40 scale-105 shadow-lg shadow-blue-900/30"
+                      : "border-slate-700/50 bg-slate-800/50 opacity-70 hover:opacity-100",
+                    isDead ? "border-red-900/50 bg-red-950/30" : "",
+                    isDone && !isDead ? "border-green-900/50 bg-green-950/40" : ""
+                  )}
+                >
+                  {/* Background health bar */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-900/50">
+                    <div
+                      className="h-full transition-all duration-300"
+                      style={{
+                        width: `${Math.max(5, (currentHealth / maxHealth) * 100)}%`,
+                        backgroundColor: isDead ? '#ef4444' : isDone ? '#22c55e' : '#3b82f6'
+                      }}
+                    />
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full p-1 gap-0.5">
+                    <div className="text-sm font-black leading-none text-slate-200">
+                      {formatUnitNumber(unit, idx)}
+                    </div>
+
+                    <div className="text-[9px] font-bold text-slate-400 leading-tight">
+                      {shortName || (unit.type === 'squad' ? 'ОТР' : 'М')}
+                    </div>
+
+                    <div className={cn(
+                      "text-[8px] font-black px-1 rounded min-w-[20px] text-center",
+                      isDead ? "bg-red-900/50 text-red-300" :
+                      isDone ? "bg-green-900/50 text-green-300" :
+                      "bg-blue-900/50 text-blue-300"
+                    )}>
+                      {currentHealth}/{maxHealth}
+                    </div>
+                  </div>
+
+                  {/* Status indicator */}
+                  <div className={cn(
+                    "absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full border border-slate-900",
+                    isDead ? "bg-red-500" : isDone ? "bg-green-500" : "bg-blue-500"
+                  )} />
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-0 pb-12">
-        {/* Units View */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {viewMode === 'focused' ? (
-            /* Focused Carousel View */
-            <div className="flex-1 flex items-center justify-center p-4 md:p-6 min-h-0">
-              <div className={cn(
-                "w-full h-full overflow-y-auto custom-scrollbar rounded-2xl border border-slate-800/50 bg-slate-900/30 shadow-2xl p-2",
-                army.units[focusedUnitIdx]?.type === 'machine' ? "max-w-6xl" : "max-w-2xl"
-              )}>
-                {army.units.length > 0 && (
-                  <UnitCard
-                    unit={army.units[focusedUnitIdx]}
-                    updateUnit={updateUnit}
-                  />
-                )}
-              </div>
-            </div>
-          ) : (
-            /* Grid View */
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {army.units.map((unit, idx) => (
-                  <div
-                    key={unit.instanceId}
-                    onClick={() => { setFocusedUnitIdx(idx); setViewMode('focused'); }}
-                    className={cn(
-                      "cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]",
-                      unit.type === 'machine' ? "md:col-span-2 lg:col-span-2 xl:col-span-2" : ""
-                    )}
-                  >
-                    <UnitCard
-                      unit={unit}
-                      updateUnit={updateUnit}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="flex-1 overflow-y-auto p-3 md:p-4 pb-24 custom-scrollbar">
+        {army.units.length > 0 && (
+          <div className={cn(
+            "w-full bg-slate-900/50 rounded-2xl border border-slate-800/50 shadow-xl p-2 md:p-3 mx-auto",
+            army.units[focusedUnitIdx]?.type === 'machine' ? "max-w-5xl" : "max-w-2xl"
+          )}>
+            <UnitCard
+              unit={army.units[focusedUnitIdx]}
+              updateUnit={updateUnit}
+              combatLog={combatLog}
+              onCombatLogEntry={handleCombatLogEntry}
+            />
+          </div>
+        )}
       </div>
 
       {/* Status Bar - Fixed at bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800/50 shadow-xl z-40">
-        <div className="flex items-center justify-between px-3 py-2 text-[10px] md:text-xs uppercase font-bold tracking-wider">
-          <div className="flex items-center gap-2 md:gap-4">
-            <span className="text-green-400 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              <span className="hidden sm:inline">Готов</span>
-              <span className="sm:hidden">{army.units.filter(u => {
-                const { isDead, isDone } = getUnitStatus(u);
-                return isDone && !isDead;
-              }).length}</span>
-            </span>
+        {!showCombatLog ? (
+          <div className="flex items-center justify-center gap-2 md:gap-4 px-2 md:px-3 py-2 text-[10px] md:text-xs uppercase font-bold tracking-wider">
             <span className="text-blue-400 flex items-center gap-1">
               <Heart className="w-3 h-3" />
               <span className="hidden sm:inline">Активен</span>
-              <span className="sm:hidden">{army.units.filter(u => !getUnitStatus(u).isDead && !getUnitStatus(u).isDone).length}</span>
+              <span>{army.units.filter(u => !getUnitStatus(u).isDead && !getUnitStatus(u).isDone).length}</span>
             </span>
             <span className="text-red-400 flex items-center gap-1">
               <UserX className="w-3 h-3" />
               <span className="hidden sm:inline">Потерян</span>
-              <span className="sm:hidden">{army.units.filter(u => getUnitStatus(u).isDead).length}</span>
+              <span>{army.units.filter(u => getUnitStatus(u).isDead).length}</span>
             </span>
+            <div className="w-px h-4 bg-slate-700 hidden sm:block" />
+            <button
+              onClick={() => setShowCombatLog(true)}
+              className="text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
+            >
+              <History className="w-3 h-3" />
+              <span className="hidden sm:inline">История</span>
+              <span>({combatLog.length})</span>
+            </button>
           </div>
-          <span className="text-slate-500">{army.units.length} <span className="hidden sm:inline">Всего</span></span>
-        </div>
+        ) : (
+          <div className="max-h-[40vh] flex flex-col">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-300">
+                  История боя ({combatLog.length})
+                </span>
+              </div>
+              <button
+                onClick={() => setShowCombatLog(false)}
+                className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+              {combatLog.length === 0 ? (
+                <div className="text-center py-4 text-slate-500 text-xs">
+                  История пуста
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {combatLog.slice().reverse().map((entry) => (
+                    <div key={entry.id} className="bg-slate-800/50 rounded-lg p-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-slate-300">{entry.result.unitName}</span>
+                        <span className="text-slate-500">
+                          {new Date(entry.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="text-slate-400 mt-1">
+                        {entry.result.actionType === 'shot' && 'Выстрел'}
+                        {entry.result.actionType === 'melee' && 'Ближний бой'}
+                        {entry.result.actionType === 'grenade' && 'Граната'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* New Turn FAB - Floating Action Button */}
+      <button
+        onClick={calculateInitiative}
+        className="fixed bottom-16 right-3 z-50 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-900/50 rounded-2xl px-4 py-3 flex items-center gap-2 transition-all active:scale-95 min-h-[52px]"
+      >
+        <RotateCcw className="w-5 h-5" />
+        <span className="text-sm font-black uppercase">Новый Тур</span>
+      </button>
     </div>
   );
 }

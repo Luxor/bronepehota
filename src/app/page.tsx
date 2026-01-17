@@ -5,7 +5,7 @@ import { Army, RulesVersionID } from '@/lib/types';
 import ArmyBuilder from '@/components/ArmyBuilder';
 import GameSession from '@/components/GameSession';
 import factionsData from '@/data/factions.json';
-import { Shield, Edit, ArrowLeft, Info } from 'lucide-react';
+import { Shield, Edit, ArrowLeft, Info, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { isValidRulesVersion, getAllRulesVersions } from '@/lib/rules-registry';
 
@@ -19,6 +19,7 @@ export default function Home() {
     totalCost: 0,
     currentStep: 'faction-select',
     isInBattle: false,
+    currentTurn: 1,
   });
 
   // Rules version state with localStorage persistence
@@ -59,6 +60,7 @@ export default function Home() {
       pointBudget: undefined,
       currentStep: 'faction-select',
       isInBattle: false,
+      currentTurn: 1,
     });
     setView('builder');
   };
@@ -75,6 +77,9 @@ export default function Home() {
         }
         if (loadedArmy.isInBattle === undefined) {
           loadedArmy.isInBattle = false;
+        }
+        if (!loadedArmy.currentTurn) {
+          loadedArmy.currentTurn = 1;
         }
         setArmy(loadedArmy);
       } catch (e) {
@@ -144,6 +149,26 @@ export default function Home() {
 
           {/* Right section - Actions */}
           <nav className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+            {/* Turn counter */}
+            {view === 'game' && (
+              <div className="flex items-center gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                <span className="text-[9px] md:text-[10px] uppercase font-bold text-slate-500">Тур</span>
+                <span className="text-xs md:text-sm font-black text-blue-400">{army.currentTurn || 1}</span>
+              </div>
+            )}
+
+            {/* End Battle button */}
+            {view === 'game' && army.isInBattle && (
+              <button
+                onClick={handleEndBattle}
+                className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-black uppercase bg-red-600/20 text-red-400 border border-red-500/40 hover:bg-red-600/30 transition-all"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Завершить бой</span>
+                <span className="sm:hidden">Завершить</span>
+              </button>
+            )}
+
             {view === 'game' && !army.isInBattle && (
               <span className="text-[9px] md:text-[10px] px-2 py-0.5 rounded-full bg-green-600/20 text-green-400 border border-green-600/30">
                 Бой
