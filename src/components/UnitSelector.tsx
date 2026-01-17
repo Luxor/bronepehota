@@ -91,21 +91,6 @@ export function UnitSelector({
   // Get faction for styling
   const faction = factions.find(f => f.id === selectedFaction);
 
-  // Budget color coding
-  const getBudgetColor = () => {
-    const percentage = (remainingPoints / pointBudget) * 100;
-    if (percentage > 50) return '#22c55e'; // green-500
-    if (percentage >= 20) return '#eab308'; // yellow-500
-    return '#ef4444'; // red-500
-  };
-
-  const getBudgetColorClass = () => {
-    const percentage = (remainingPoints / pointBudget) * 100;
-    if (percentage > 50) return 'text-green-400';
-    if (percentage >= 20) return 'text-yellow-400';
-    return 'text-red-400';
-  };
-
   // Handle add unit with budget check
   const handleAddUnit = (unit: UnitDisplay) => {
     if (!canAffordUnit(unit.data.cost)) {
@@ -216,29 +201,6 @@ export function UnitSelector({
             <span className="sm:hidden">Заново</span>
           </button>
         )}
-      </div>
-
-      {/* Budget display card */}
-      <div
-        className="p-4 rounded-xl border-2 bg-slate-700/40"
-        style={{ borderColor: '#475569' }}
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400">Осталось очков:</span>
-          <span className={`text-3xl font-bold ${getBudgetColorClass()}`}>
-            {remainingPoints} / {pointBudget}
-          </span>
-        </div>
-        {/* Progress bar */}
-        <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
-          <div
-            className="h-full transition-all duration-300"
-            style={{
-              width: `${Math.max(0, (remainingPoints / pointBudget) * 100)}%`,
-              backgroundColor: getBudgetColor(),
-            }}
-          />
-        </div>
       </div>
 
       {/* Warning toast */}

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { X, Shield, Sword, Zap, Target, Gauge, ShieldCheck, Info, Cpu, Crosshair, Flame, Activity } from 'lucide-react';
+import { X, Shield, Sword, Zap, Target, Gauge, ShieldCheck, Info, Cpu, Crosshair, Flame, Activity, Users, Sparkles } from 'lucide-react';
 import type { Squad, Machine, Faction, Soldier, Weapon, SpeedSector } from '@/lib/types';
+import { useBottomSheet } from '@/hooks/useBottomSheet';
 
 interface UnitDetailsModalProps {
   unit: Squad | Machine;
@@ -292,6 +293,86 @@ function WeaponCard({ weapon, index }: WeaponCardProps) {
   );
 }
 
+// Key stats card component for bottom sheet hero section
+interface KeyStatsCardProps {
+  unit: Squad | Machine;
+  unitType: 'squad' | 'machine';
+  factionColor: string;
+}
+
+function KeyStatsCard({ unit, unitType, factionColor }: KeyStatsCardProps) {
+  if (unitType === 'squad') {
+    const squad = unit as Squad;
+    const soldierCount = squad.soldiers.length;
+    const armorValues = squad.soldiers.map(s => s.armor).filter(a => a >= 0);
+    const avgArmor = armorValues.length > 0
+      ? Math.round(armorValues.reduce((a, b) => a + b, 0) / armorValues.length)
+      : 0;
+    const allProps = squad.soldiers.flatMap(s => s.props || []);
+    const uniqueProps = Array.from(new Set(allProps));
+
+    return (
+      <div className="flex items-center gap-4 mt-3">
+        <div className="flex items-center gap-2 bg-slate-800/60 rounded-full px-3 py-1.5">
+          <Users className="w-4 h-4" style={{ color: factionColor }} />
+          <span className="text-sm font-semibold text-white">{soldierCount} бойцов</span>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-800/60 rounded-full px-3 py-1.5">
+          <ShieldCheck className="w-4 h-4 text-purple-400" />
+          <span className="text-sm font-semibold text-white">Защита {avgArmor}</span>
+        </div>
+        {uniqueProps.length > 0 && (
+          <div className="flex items-center gap-2 bg-slate-800/60 rounded-full px-3 py-1.5">
+            <Sparkles className="w-4 h-4 text-yellow-400" />
+            <span className="text-sm font-semibold text-white">{uniqueProps.join(', ')}</span>
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    const machine = unit as Machine;
+    return (
+      <div className="flex items-center gap-4 mt-3">
+        <div className="flex items-center gap-2 bg-slate-800/60 rounded-full px-3 py-1.5">
+          <Activity className="w-4 h-4 text-orange-400" />
+          <span className="text-sm font-semibold text-white">{machine.ammo_max} боезапас</span>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-800/60 rounded-full px-3 py-1.5">
+          <ShieldCheck className="w-4 h-4 text-purple-400" />
+          <span className="text-sm font-semibold text-white">{machine.durability_max} прочность</span>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-800/60 rounded-full px-3 py-1.5">
+          <Crosshair className="w-4 h-4 text-red-400" />
+          <span className="text-sm font-semibold text-white">{machine.weapons.length} вооружение</span>
+        </div>
+      </div>
+    );
+  }
+}
+
+// Compact stat row for mobile-friendly display
+interface CompactStatRowProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  color?: string;
+  monospace?: boolean;
+}
+
+function CompactStatRow({ icon, label, value, color, monospace = false }: CompactStatRowProps) {
+  return (
+    <div className="flex items-center gap-2 bg-slate-800/50 rounded-lg p-2 min-w-0">
+      <div className="flex-shrink-0">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] uppercase text-slate-500 font-bold truncate">{label}</div>
+        <div className={`text-sm font-bold truncate ${color || 'text-white'} ${monospace ? 'font-mono' : ''}`}>
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function UnitDetailsModal({
   unit,
   unitType,
@@ -299,10 +380,17 @@ export function UnitDetailsModal({
   isOpen,
   onClose,
 }: UnitDetailsModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
 
-  // T008: Implement body scroll lock when modal opens
+  // Bottom sheet hook for swipe-down gesture on mobile
+  const { sheetRef, touchHandlers } = useBottomSheet({
+    onClose,
+    closeThreshold: 100,
+    isEnabled: isOpen,
+  });
+
+  // Body scroll lock when modal opens
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -314,7 +402,7 @@ export function UnitDetailsModal({
     };
   }, [isOpen]);
 
-  // T007: Add Escape key to close functionality
+  // Escape key to close functionality
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -325,14 +413,14 @@ export function UnitDetailsModal({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
-  // T055: Add focus management (focus trap in modal, restore focus on close)
+  // Focus management
   useEffect(() => {
     if (isOpen && closeButtonRef.current) {
       closeButtonRef.current.focus();
     }
   }, [isOpen]);
 
-  // T006: Add click-outside-to-close functionality
+  // Click-outside-to-close functionality
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -341,75 +429,80 @@ export function UnitDetailsModal({
 
   if (!isOpen) return null;
 
-  // T054: Implement rapid open/close debounce (prevent animation conflicts)
-  const isAnimating = false; // Add state if needed for complex animations
-
-  // T004: Implement modal overlay with backdrop
-  // T010: Implement responsive modal container
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      ref={backdropRef}
+      className="fixed inset-0 z-50 md:flex md:items-center md:justify-center bg-black/60 backdrop-blur-sm"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      {/* T010: Modal container - full-screen mobile, centered card desktop */}
+      {/* Bottom sheet container - mobile: fixed at bottom, desktop: centered card */}
       <div
-        ref={modalRef}
-        className={`w-full h-full md:h-auto md:max-w-2xl md:max-h-[90vh] bg-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-200 ease-out ${
-          isOpen ? 'opacity-100 scale-100' : 'opacity-95 scale-95'
-        }`}
-        onClick={(e) => e.stopPropagation()} // Prevent backdrop click when clicking content
+        ref={sheetRef}
+        {...touchHandlers}
+        className="fixed bottom-0 left-0 right-0 md:relative md:max-w-2xl bg-slate-800 rounded-t-3xl md:rounded-xl max-h-[85vh] md:max-h-[90vh] shadow-2xl flex flex-col animate-slideUp overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* T005: Modal close button */}
+        {/* Drag handle - visible on mobile only */}
+        <div className="flex justify-center pt-3 pb-1 md:hidden">
+          <div className="w-12 h-1.5 bg-slate-600 rounded-full" />
+        </div>
+
+        {/* Close button */}
         <button
           ref={closeButtonRef}
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors z-10"
-          style={{ minWidth: '44px', minHeight: '44px' }} // T045: 44x44px minimum for mobile
+          className="absolute top-3 right-3 md:top-4 md:right-4 p-2 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white transition-colors z-10"
+          style={{ minWidth: '44px', minHeight: '44px' }}
           aria-label="Закрыть"
         >
-          <X size={24} />
+          <X size={20} className="md:hidden" />
+          <X size={24} className="hidden md:block" />
         </button>
 
-        {/* T012: Modal header section */}
-        <div
-          className="relative bg-gradient-to-r from-slate-700 to-slate-800 p-6 pb-4 border-b-2"
-          style={{ borderColor: faction.color }}
-        >
-          <h2
-            id="modal-title"
-            className="text-2xl font-bold text-white pr-12"
-          >
-            {unit.name}
-          </h2>
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-sm text-slate-300">
-              {unitType === 'squad' ? 'Отряд' : 'Машина'}
-            </span>
-            <span className="text-slate-500">•</span>
-            <span className="text-lg font-semibold" style={{ color: faction.color }}>
-              {unit.cost} очков
-            </span>
-          </div>
+        {/* Hero section with image, name, cost */}
+        <div className="relative px-4 pt-2 pb-4 md:p-6 md:pb-4 border-b border-slate-700">
           {unit.image && (
-            <div className="absolute right-16 top-1/2 -translate-y-1/2 opacity-20 hidden sm:block">
+            <div className="flex justify-center mb-4 md:absolute md:right-16 md:top-1/2 md:-translate-y-1/2 md:mb-0 md:opacity-20">
               <img
                 src={unit.image}
                 alt={unit.name}
-                className="w-32 h-32 object-cover rounded-lg"
+                className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-xl shadow-lg"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
             </div>
           )}
+
+          <div className="text-center md:text-left md:pr-12">
+            <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2" style={{ backgroundColor: `${faction.color}20`, color: faction.color }}>
+              {unitType === 'squad' ? 'Отряд' : 'Машина'}
+            </div>
+
+            <h2
+              id="modal-title"
+              className="text-xl md:text-2xl font-bold text-white mb-1"
+            >
+              {unit.name}
+            </h2>
+
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <span className="text-2xl font-bold" style={{ color: faction.color }}>
+                {unit.cost}
+              </span>
+              <span className="text-slate-400">очков</span>
+            </div>
+
+            {/* Key stats card */}
+            <KeyStatsCard unit={unit} unitType={unitType} factionColor={faction.color} />
+          </div>
         </div>
 
-        {/* T013: Modal content scrollable area */}
-        {/* T041: Add animation/transition when switching between units - key prop ensures re-render animation */}
-        <div key={`${unitType}-${unit.id}`} className="flex-1 overflow-y-auto p-4 md:p-6" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+        {/* Scrollable content area */}
+        <div key={`${unitType}-${unit.id}`} className="flex-1 overflow-y-auto p-4 md:p-6 animate-fadeIn">
           {unitType === 'squad' ? (
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -418,12 +511,10 @@ export function UnitDetailsModal({
               </h3>
 
               {(unit as Squad).soldiers.length === 0 ? (
-                // T021: Empty state message when soldiers array is empty
                 <div className="text-center py-8 text-slate-400">
                   Нет данных о солдатах
                 </div>
               ) : (
-                // T020: Render squad soldiers list
                 <div className="space-y-3">
                   {(unit as Squad).soldiers.map((soldier, index) => (
                     <SoldierStats
@@ -437,7 +528,6 @@ export function UnitDetailsModal({
               )}
             </div>
           ) : (
-            // T037: Add conditional rendering logic (squad vs machine view) based on unitType prop
             <div className="space-y-4">
               {/* Machine basic stats */}
               <MachineStats machine={unit as Machine} factionColor={faction.color} />
@@ -453,12 +543,10 @@ export function UnitDetailsModal({
                 </h3>
 
                 {(unit as Machine).weapons.length === 0 ? (
-                  // T035: Add empty state message when weapons array is empty
                   <div className="text-center py-8 text-slate-400">
                     Нет вооружения
                   </div>
                 ) : (
-                  // T034: Render machine weapons list (map through weapons array)
                   <div className="space-y-2">
                     {(unit as Machine).weapons.map((weapon, index) => (
                       <WeaponCard key={index} weapon={weapon} index={index} />

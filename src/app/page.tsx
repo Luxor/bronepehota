@@ -163,7 +163,7 @@ export default function Home() {
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto">
+      <div className={`flex-1 overflow-auto ${view === 'builder' && army.currentStep === 'unit-select' ? 'pb-20 md:pb-20' : ''}`}>
         {view === 'builder' ? (
           <ArmyBuilder
             army={army}
@@ -182,17 +182,53 @@ export default function Home() {
         )}
       </div>
 
-      {/* Footer - different content based on current step */}
-      {view === 'builder' && army.currentStep === 'unit-select' && (
-        <footer className="glass-strong border-t border-slate-700/50 px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm shadow-lg">
-          <div className="flex items-center justify-center gap-3">
-            <span className="opacity-50 text-[10px] uppercase tracking-wider">Версия правил:</span>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50">
+      {/* Fixed footer for unit-select phase */}
+      {view === 'builder' && army.currentStep === 'unit-select' && army.pointBudget && (
+        <footer className="fixed bottom-0 left-0 right-0 z-40 glass-strong border-t border-slate-700/50 px-3 md:px-4 py-2.5 md:py-3 shadow-xl backdrop-blur-sm bg-slate-900/95">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-4">
+            {/* Left part: budget with progress bar */}
+            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+              <span className="text-slate-400 text-sm md:text-base flex-shrink-0">💰</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5 md:gap-2 mb-1">
+                  <span className="font-bold text-sm md:text-base">{army.totalCost}</span>
+                  <span className="text-slate-500 text-xs md:text-sm">/</span>
+                  <span className="text-slate-400 text-xs md:text-sm">{army.pointBudget}</span>
+                  <span className="text-slate-500 text-[10px] md:text-xs ml-0.5 hidden sm:inline">очков</span>
+                </div>
+                <div className="h-1 md:h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      (1 - army.totalCost / army.pointBudget) > 0.5
+                        ? 'bg-green-500'
+                        : (1 - army.totalCost / army.pointBudget) > 0.2
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.min(100, (army.totalCost / army.pointBudget) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Middle: rules version */}
+            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-lg bg-slate-800/50 flex-shrink-0">
               <div
-                className="w-2.5 h-2.5 rounded-full"
+                className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: getAllRulesVersions().find(v => v.id === rulesVersion)?.color }}
               />
-              <span className="font-semibold text-sm">{getAllRulesVersions().find(v => v.id === rulesVersion)?.name || ''}</span>
+              <span className="font-semibold text-xs md:text-sm hidden sm:inline">
+                {getAllRulesVersions().find(v => v.id === rulesVersion)?.name || ''}
+              </span>
+            </div>
+
+            {/* Right part: unit counter */}
+            <div className="flex items-center gap-1.5 md:gap-2 text-slate-400 flex-shrink-0">
+              <span className="text-sm md:text-base">👥</span>
+              <span className="font-semibold text-sm md:text-base">{army.units.length}</span>
+              <span className="text-[10px] md:text-xs text-slate-500 hidden sm:inline">
+                {army.units.length === 1 ? 'отряд' : army.units.length > 1 && army.units.length < 5 ? 'отряда' : 'отрядов'}
+              </span>
             </div>
           </div>
         </footer>

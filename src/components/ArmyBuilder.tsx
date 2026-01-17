@@ -39,7 +39,7 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
   const [searchTerm, setSearchTerm] = useState('');
 
   // Setup step state for guided flow
-  const [setupStep, setSetupStep] = useState<'faction' | 'budget' | 'rules'>('faction');
+  const [setupStep, setSetupStep] = useState<'faction' | 'budget' | 'rules' | 'units'>('faction');
 
   // Modal state management (selectedUnit, isModalOpen)
   const [selectedUnit, setSelectedUnit] = useState<Squad | Machine | null>(null);
@@ -206,7 +206,10 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
                     versions={getAllRulesVersions()}
                     selectedVersion={rulesVersion}
                     onVersionChange={onRulesVersionChange}
-                    onConfirm={() => setArmy({ ...army, currentStep: 'unit-select' })}
+                    onConfirm={() => {
+                      setArmy({ ...army, currentStep: 'unit-select' });
+                      setSetupStep('units');
+                    }}
                   />
                 </div>
               </div>
@@ -215,7 +218,14 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
         )}
 
         {army.currentStep === 'unit-select' && army.pointBudget && (
-          <UnitSelector
+          <>
+            <StepProgressIndicator
+              currentStep={setupStep}
+              selectedFaction={army.faction}
+              selectedBudget={army.pointBudget}
+              selectedRules={rulesVersion}
+            />
+            <UnitSelector
             factions={typedFactions}
             squads={typedSquads}
             machines={typedMachines}
@@ -310,6 +320,7 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
               });
             }}
           />
+          </>
         )}
       </div>
     );
