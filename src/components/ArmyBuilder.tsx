@@ -39,7 +39,7 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
   const [searchTerm, setSearchTerm] = useState('');
 
   // Setup step state for guided flow
-  const [setupStep, setSetupStep] = useState<'faction' | 'budget' | 'rules'>('faction');
+  const [setupStep, setSetupStep] = useState<'faction' | 'budget' | 'rules' | 'units'>('faction');
 
   // Modal state management (selectedUnit, isModalOpen)
   const [selectedUnit, setSelectedUnit] = useState<Squad | Machine | null>(null);
@@ -206,7 +206,10 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
                     versions={getAllRulesVersions()}
                     selectedVersion={rulesVersion}
                     onVersionChange={onRulesVersionChange}
-                    onConfirm={() => setArmy({ ...army, currentStep: 'unit-select' })}
+                    onConfirm={() => {
+                      setArmy({ ...army, currentStep: 'unit-select' });
+                      setSetupStep('units');
+                    }}
                   />
                 </div>
               </div>
@@ -215,9 +218,17 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
         )}
 
         {army.currentStep === 'unit-select' && army.pointBudget && (
-          <UnitSelector
+          <>
+            <StepProgressIndicator
+              currentStep={setupStep}
+              selectedFaction={army.faction}
+              selectedBudget={army.pointBudget}
+              selectedRules={rulesVersion}
+            />
+            <UnitSelector
             factions={typedFactions}
             squads={typedSquads}
+            machines={typedMachines}
             selectedFaction={army.faction}
             pointBudget={army.pointBudget}
             army={army.units}
@@ -245,6 +256,29 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
                 ...army,
                 units: [...army.units, newUnit],
                 totalCost: army.totalCost + squad.cost,
+              });
+            }}
+            onAddMachine={(machine) => {
+              // Calculate instance number for this unit type
+              const existingUnitsOfType = army.units.filter(u => u.data.id === machine.id);
+              const instanceNumber = existingUnitsOfType.length + 1;
+
+              const newUnit: ArmyUnit = {
+                instanceId: `${machine.id}_${Date.now()}`,
+                type: 'machine',
+                data: machine,
+                instanceNumber,
+                currentDurability: machine.durability_max,
+                currentAmmo: machine.ammo_max,
+                deadSoldiers: undefined,
+                actionsUsed: [{ moved: false, shot: false, melee: false, done: false }],
+                machineShotsUsed: 0,
+                machineWeaponShots: {},
+              };
+              setArmy({
+                ...army,
+                units: [...army.units, newUnit],
+                totalCost: army.totalCost + machine.cost,
               });
             }}
             onRemoveUnit={(instanceId) => {
@@ -286,6 +320,7 @@ export default function ArmyBuilder({ army, setArmy, onEnterBattle, rulesVersion
               });
             }}
           />
+          </>
         )}
       </div>
     );
