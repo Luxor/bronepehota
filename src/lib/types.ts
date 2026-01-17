@@ -145,6 +145,7 @@ export interface Army {
   isInBattle?: boolean;
   isLoading?: boolean;
   loadError?: string;
+  currentTurn?: number; // Starts at 1, increments with each new turn
 }
 
 // Rules version selection
@@ -152,6 +153,7 @@ export interface HitResult {
   success: boolean;
   roll: number;
   total: number;
+  isGrenade?: boolean; // For grenade throws, marks that this is a distance check
 }
 
 export interface DamageResult {

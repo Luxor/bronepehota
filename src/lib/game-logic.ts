@@ -52,10 +52,10 @@ export const calculateDamage = (powerStr: string, targetArmor: number): { damage
   return { damage, rolls };
 };
 
-export const calculateMelee = (attackerMelee: number, defenderMelee: number): { 
-  attackerRoll: number, 
-  attackerTotal: number, 
-  defenderRoll: number, 
+export const calculateMelee = (attackerMelee: number, defenderMelee: number): {
+  attackerRoll: number,
+  attackerTotal: number,
+  defenderRoll: number,
   defenderTotal: number,
   winner: 'attacker' | 'defender' | 'draw'
 } => {
@@ -77,3 +77,80 @@ export const calculateMelee = (attackerMelee: number, defenderMelee: number): {
   };
 };
 
+/**
+ * Combat flow validation utilities
+ */
+
+export interface CombatValidation {
+  isValid: boolean;
+  errors: string[];
+}
+
+export function validateCombatParameters(
+  actionType: 'shot' | 'melee' | 'grenade',
+  distance: number,
+  targetArmor: number,
+  targetMelee: number,
+  ammo?: number,
+  grenadesAvailable?: boolean
+): CombatValidation {
+  const errors: string[] = [];
+
+  if (actionType === 'shot' || actionType === 'grenade') {
+    if (distance < 1 || distance > 20) {
+      errors.push('Дистанция должна быть от 1 до 20');
+    }
+    if (targetArmor < 0 || targetArmor > 10) {
+      errors.push('Броня должна быть от 0 до 10');
+    }
+    if (actionType === 'grenade' && !grenadesAvailable) {
+      errors.push('Гранаты уже израсходованы');
+    }
+  }
+
+  if (actionType === 'melee') {
+    if (targetMelee < 0 || targetMelee > 10) {
+      errors.push('Ближний бой цели должен быть от 0 до 10');
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Format combat result for display
+ */
+export function formatCombatResult(
+  actionType: 'shot' | 'melee' | 'grenade',
+  hitResult?: { success: boolean; roll: number; total: number },
+  damageResult?: { damage: number; rolls: number[] },
+  meleeResult?: { attackerRoll: number; attackerTotal: number; defenderRoll: number; defenderTotal: number; winner: 'attacker' | 'defender' | 'draw' }
+): string {
+  if (actionType === 'melee' && meleeResult) {
+    if (meleeResult.winner === 'attacker') return 'Победа в ближнем бою';
+    if (meleeResult.winner === 'defender') return 'Контратака';
+    return 'Ничья в ближнем бою';
+  }
+
+  if (hitResult) {
+    if (!hitResult.success) return 'Промах';
+    if (damageResult) {
+      if (damageResult.damage === 0) return 'Попадание, но не пробито';
+      return `Попадание: ${damageResult.damage} ранений`;
+    }
+  }
+
+  return 'Завершено';
+}
+
+/**
+ * Calculate dice type from roll string
+ */
+export function getDiceType(rollStr: string): 6 | 12 | 20 {
+  if (rollStr.includes('D20')) return 20;
+  if (rollStr.includes('D12')) return 12;
+  return 6;
+}
